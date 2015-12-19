@@ -34,7 +34,12 @@ window.addEventListener('keypress', function (event) {
            e.data = store.get();
            document.dispatchEvent(e);
        }
+       return;
     }
+    
+    // focus on the new-todo input box if someone is 
+    // typing a todo
+    document.getElementById('new-todo').focus();
 }, false);
 
 window.addEventListener('keyup', function (event) {
