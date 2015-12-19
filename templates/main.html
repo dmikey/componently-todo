@@ -1,5 +1,12 @@
 <section id="main">
-    <input id="toggle-all" type="checkbox" data-hook="mark-all">
+    <input id="toggle-all" type="checkbox">
     <label for="toggle-all">Mark all as complete</label>
-    <ul id="todo-list" data-hook="todo-container"></ul>
+    <ul id="todo-list">
+        <% if(data.content) { %>
+            <% for(var i = 0; i < data.content.length; i++) { %>
+                <% var todo = new this.todo({ content: data.content[i].label });  todo.setup();%>
+                <%= todo.innerHTML %>
+            <% } %>
+        <% } %>
+    </ul>
 </section>

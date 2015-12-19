@@ -10,7 +10,10 @@ module.exports = function (grunt) {
             compile: {
                 options: {
                     cjs: true,
-                    nolodash: true
+                    nolodash: true,
+                    templateSettings: {
+                        variable: 'data'
+                    }
                 },
                 files: {
                     'src/templates/index.js': ['templates/*.html']

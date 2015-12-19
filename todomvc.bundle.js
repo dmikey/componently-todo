@@ -7,11 +7,29 @@ var
 var
     templates = require('../templates');
 
-module.exports = function(data) {
+module.exports = function (data) {
+    data.allselected = data.allselected ? 'selected' : '';
+    data.activeselected = data.allselected ? 'selected' : '';
+    data.completedselected = data.allselected ? 'selected' : '';
+
+    this.setActiveFilter = function (value) {
+        var map = {
+            active: 'activeselected',
+            all: 'allselected',
+            completed: 'completedselected'
+        };
+
+        if (map[value]) {
+            this.allselected = '';
+            this.activeselected = '';
+            this.completedselected = '';
+            this[map[value]] = 'selected'
+        };
+    };
+
     base.call(this, templates['templates/footer.html'], data);
 };
-
-},{"../templates":6,"chemical/base":8}],2:[function(require,module,exports){
+},{"../templates":7,"chemical/base":9}],2:[function(require,module,exports){
 'use strict';
 
 var
@@ -24,7 +42,7 @@ module.exports = function(data) {
     base.call(this, templates['templates/header.html'], data);
 };
 
-},{"../templates":6,"chemical/base":8}],3:[function(require,module,exports){
+},{"../templates":7,"chemical/base":9}],3:[function(require,module,exports){
 'use strict';
 
 var
@@ -33,11 +51,15 @@ var
 var
     templates = require('../templates');
 
+var
+    todo = require('./todo');
+
 module.exports = function(data) {
+    this.todo = todo;
     base.call(this, templates['templates/main.html'], data);
 };
 
-},{"../templates":6,"chemical/base":8}],4:[function(require,module,exports){
+},{"../templates":7,"./todo":4,"chemical/base":9}],4:[function(require,module,exports){
 'use strict';
 
 var
@@ -50,7 +72,22 @@ module.exports = function(data) {
     base.call(this, templates['templates/todo.html'], data);
 };
 
-},{"../templates":6,"chemical/base":8}],5:[function(require,module,exports){
+},{"../templates":7,"chemical/base":9}],5:[function(require,module,exports){
+document.addEventListener('click', function(event){
+    var
+        target = event.target;
+    
+    if(target.id === 'clear-completed') {
+        console.log('clear the completed stuffs');
+    }
+    
+}, false)
+},{}],6:[function(require,module,exports){
+/* chemical components for helpers */
+var
+    router = require('chemical/router');
+
+/* render view */
 var
     MainView = require('./views/main');
 
@@ -58,53 +95,89 @@ var
     target = document.querySelector('#todoapp');
 
 MainView.renderInto(target);
-},{"./views/main":7}],6:[function(require,module,exports){
+
+router.intitialize(function (route) {
+    //404
+});
+
+
+//application routes for todo
+router.bind('/', function () {
+    MainView.components.footer.setActiveFilter('all');
+});
+
+router.bind('/active', function () {
+    MainView.components.footer.setActiveFilter('active');
+});
+
+router.bind('/completed', function () {
+    MainView.components.footer.setActiveFilter('completed');
+});
+
+
+/* 
+ * control router functions when hitting
+ * the page for the first time 
+ */
+if (router.routes[location.pathname]) {
+    router.routes[location.pathname]();
+} else {
+    var hash = location.hash.replace('#', '');
+    router.change(hash);
+}
+},{"./views/main":8,"chemical/router":16}],7:[function(require,module,exports){
 this["JST"] = this["JST"] || {};
 
-this["JST"]["templates/footer.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/footer.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<footer id="footer">\n    <span id="todo-count" data-hook="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="selected" href="#/" data-hook="all-mode">All</a>\n        </li>\n        <li>\n            <a href="#/active" data-hook="active-mode">Active</a>\n        </li>\n        <li>\n            <a href="#/completed" data-hook="completed-mode">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed" data-hook="clear-completed">Clear completed</button>\n</footer>';
-
-}
+__p += '<footer id="footer">\n    <span id="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="' +
+((__t = ( data.allselected )) == null ? '' : __t) +
+'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.activeselected )) == null ? '' : __t) +
+'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.completedselected )) == null ? '' : __t) +
+'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed">Clear completed</button>\n</footer>';
 return __p
 };
 
-this["JST"]["templates/header.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/header.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<header id="header">\n    <h1>todos</h1>\n    <input id="new-todo" placeholder="What needs to be done?" data-hook="todo-input" autofocus>\n</header>';
-
-}
+__p += '<header id="header">\n    <h1>todos</h1>\n    <input id="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
 return __p
 };
 
-this["JST"]["templates/main.html"] = function(obj) {
-obj || (obj = {});
-var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<section id="main">\n    <input id="toggle-all" type="checkbox" data-hook="mark-all">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" data-hook="todo-container"></ul>\n</section>';
-
-}
+this["JST"]["templates/main.html"] = function(data) {
+var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
+function print() { __p += __j.call(arguments, '') }
+__p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
+ if(data.content) { ;
+__p += '\n            ';
+ for(var i = 0; i < data.content.length; i++) { ;
+__p += '\n                ';
+ var todo = new this.todo({ content: data.content[i].label });  todo.setup();;
+__p += '\n                ' +
+((__t = ( todo.innerHTML )) == null ? '' : __t) +
+'\n            ';
+ } ;
+__p += '\n        ';
+ } ;
+__p += '\n    </ul>\n</section>';
 return __p
 };
 
-this["JST"]["templates/todo.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<ul id="todo-list" data-hook="todo-container">\n    <li class="">\n        <div class="view">\n            <input type="checkbox" data-hook="checkbox" class="toggle">\n            <label data-hook="title">k</label>\n            <button data-hook="action-delete" class="destroy"></button>\n        </div>\n        <input data-hook="input" class="edit" data-anddom-display="" data-anddom-hidden="true" style="display: none;">\n    </li>\n</ul>';
-
-}
+__p += '<li class="">\n    <div class="view">\n        <input type="checkbox" class="toggle">\n        <label>' +
+((__t = ( data.content )) == null ? '' : __t) +
+'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
 return __p
 };
 
 var _ = {escape: escape};
 
 module.exports =this["JST"];
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
+//import components
 var 
     Container = require('chemical/container');
 
@@ -114,15 +187,39 @@ var
     Todo = require('../components/todo'),
     Footer = require('../components/footer');
 
-module.exports = new Container({
+var
+    Controller = require('../controllers/todo');
+
+//declare and name components for exporting
+//chemical does NOT do this by default, YOU decide
+//when you need this
+var 
+    components = {
+        header:  new Header({}),
+        main: new Main({
+            content: [
+                {label: 'test'}
+            ]
+        }),
+        footer: new Footer({})
+    }
+
+window.footer = components.footer;
+
+//compose view
+var
+    container = new Container({
     components:[
-        new Header({}),
-        new Main({}),
-        new Todo({}),
-        new Footer({})
+        components.header,
+        components.main,
+        components.footer
     ]
 });
-},{"../components/footer":1,"../components/header":2,"../components/main":3,"../components/todo":4,"chemical/container":10}],8:[function(require,module,exports){
+
+//we want to export our components
+container.components = components;
+module.exports = container;
+},{"../components/footer":1,"../components/header":2,"../components/main":3,"../components/todo":4,"../controllers/todo":5,"chemical/container":11}],9:[function(require,module,exports){
 'use strict';
 
 var
@@ -183,7 +280,7 @@ module.exports = function (templatePath, data) {
     }.bind(this))
 
 };
-},{"./lib/templates/index":11,"./lib/utils/document":13,"./lib/utils/observe":14}],9:[function(require,module,exports){
+},{"./lib/templates/index":12,"./lib/utils/document":14,"./lib/utils/observe":15}],10:[function(require,module,exports){
 'use strict';
 
 var
@@ -299,7 +396,7 @@ module.exports = function (data) {
         }
     };
 };
-},{"./lib/utils/debounce":12,"./lib/utils/document":13}],10:[function(require,module,exports){
+},{"./lib/utils/debounce":13,"./lib/utils/document":14}],11:[function(require,module,exports){
 'use strict';
 
 var
@@ -309,7 +406,7 @@ module.exports = function(data) {
     return new Block(data);
 };
 
-},{"./block":9}],11:[function(require,module,exports){
+},{"./block":10}],12:[function(require,module,exports){
 this["JST"] = this["JST"] || {};
 
 this["JST"]["anchor.html"] = function(data) {
@@ -420,7 +517,7 @@ return __p
 var _ = {escape: escape};
 
 module.exports =this["JST"];
-},{}],12:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 module.exports = function(fn, delay) {
   var timer = null;
   var firstRun = true;
@@ -432,7 +529,7 @@ module.exports = function(fn, delay) {
     }, delay);
   };
 }
-},{}],13:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /*
     server side fill, for document
     module uses, help us build robust server rendered
@@ -482,7 +579,7 @@ var fill = {
 };
 
 module.exports = fill;
-},{}],14:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports = function(obj, cb, data) {
 
      /* leaving this off of node side for right now */
@@ -499,4 +596,94 @@ module.exports = function(obj, cb, data) {
         console.warn('Observables not supports, please polyfill');
     }
 }
-},{}]},{},[5]);
+},{}],16:[function(require,module,exports){
+'use strict';
+
+function router() {
+
+    var routes = [];
+    var unknown;
+
+	/*
+		@define: intializes the router class
+		@requires: "func": {
+			type: function,
+			parameters: function(route),
+			define: "this is used for when a hash is not found"
+		}
+		@example:
+		var router = require('./router')
+        router.intitialize(function(route) {
+			console.log(route + 'not found');
+		});
+	*/
+    var intitialize = function(func) {
+        unknown = func;
+        window.onhashchange = hashchange;
+        hashchange();
+    };
+
+	/*
+		@define: is called when a hash change occurs
+		@requires: none
+		@returns: none
+	*/
+    var hashchange = function() {
+        var hash = window.location.hash.replace('#', '');
+        if (routes[hash]) {
+            routes[hash]();
+        } else {
+            unknown(hash);
+        }
+    };
+
+	/*
+		@define: binds hash events to global window.routes
+		@requires: "hash": {type: String}
+		@requires: "func": {type: Function}
+		@example:
+		var router = require('./router');
+		router.bind('hello', function() {
+			alert('hellow world');
+		});
+	*/
+    var bind = function(hash, func) {
+        if (typeof func === 'function') {
+            routes[hash] = func;
+        } else {
+            throw new TypeError('func needs to be a function');
+        }
+    };
+
+	/*
+		@define: changes the hash of the window object
+		@requires: "hash": {type: String}
+		@example:
+		var router = require('./router');
+		router.change('hello');
+	*/
+    var change = function(hash) {
+		/*
+			This could happen if the user is already on a hash event
+			and restarts the app
+		 */
+        if (location.href.substring(location.href.indexOf('#')) === '#' + hash) {
+            hashchange();
+        } else {
+            location.href = '#' + hash;
+        }
+    };
+
+    return {
+        bind: bind,
+        change: change,
+        routes: routes,
+        intitialize: intitialize
+    };
+
+}
+
+var instance;
+module.exports = instance = instance || router();
+
+},{}]},{},[6]);

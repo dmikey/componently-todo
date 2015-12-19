@@ -1,42 +1,47 @@
 this["JST"] = this["JST"] || {};
 
-this["JST"]["templates/footer.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/footer.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<footer id="footer">\n    <span id="todo-count" data-hook="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="selected" href="#/" data-hook="all-mode">All</a>\n        </li>\n        <li>\n            <a href="#/active" data-hook="active-mode">Active</a>\n        </li>\n        <li>\n            <a href="#/completed" data-hook="completed-mode">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed" data-hook="clear-completed">Clear completed</button>\n</footer>';
-
-}
+__p += '<footer id="footer">\n    <span id="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="' +
+((__t = ( data.allselected )) == null ? '' : __t) +
+'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.activeselected )) == null ? '' : __t) +
+'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.completedselected )) == null ? '' : __t) +
+'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed">Clear completed</button>\n</footer>';
 return __p
 };
 
-this["JST"]["templates/header.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/header.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<header id="header">\n    <h1>todos</h1>\n    <input id="new-todo" placeholder="What needs to be done?" data-hook="todo-input" autofocus>\n</header>';
-
-}
+__p += '<header id="header">\n    <h1>todos</h1>\n    <input id="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
 return __p
 };
 
-this["JST"]["templates/main.html"] = function(obj) {
-obj || (obj = {});
-var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<section id="main">\n    <input id="toggle-all" type="checkbox" data-hook="mark-all">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" data-hook="todo-container"></ul>\n</section>';
-
-}
+this["JST"]["templates/main.html"] = function(data) {
+var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
+function print() { __p += __j.call(arguments, '') }
+__p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
+ if(data.content) { ;
+__p += '\n            ';
+ for(var i = 0; i < data.content.length; i++) { ;
+__p += '\n                ';
+ var todo = new this.todo({ content: data.content[i].label });  todo.setup();;
+__p += '\n                ' +
+((__t = ( todo.innerHTML )) == null ? '' : __t) +
+'\n            ';
+ } ;
+__p += '\n        ';
+ } ;
+__p += '\n    </ul>\n</section>';
 return __p
 };
 
-this["JST"]["templates/todo.html"] = function(obj) {
-obj || (obj = {});
+this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-with (obj) {
-__p += '<ul id="todo-list" data-hook="todo-container">\n    <li class="">\n        <div class="view">\n            <input type="checkbox" data-hook="checkbox" class="toggle">\n            <label data-hook="title">k</label>\n            <button data-hook="action-delete" class="destroy"></button>\n        </div>\n        <input data-hook="input" class="edit" data-anddom-display="" data-anddom-hidden="true" style="display: none;">\n    </li>\n</ul>';
-
-}
+__p += '<li class="">\n    <div class="view">\n        <input type="checkbox" class="toggle">\n        <label>' +
+((__t = ( data.content )) == null ? '' : __t) +
+'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
 return __p
 };
 

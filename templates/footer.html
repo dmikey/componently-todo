@@ -1,15 +1,15 @@
 <footer id="footer">
-    <span id="todo-count" data-hook="todo-count"></span>
+    <span id="todo-count"></span>
     <ul id="filters">
         <li>
-            <a class="selected" href="#/" data-hook="all-mode">All</a>
+            <a class="<%= data.allselected %>" href="#/">All</a>
         </li>
         <li>
-            <a href="#/active" data-hook="active-mode">Active</a>
+            <a class="<%= data.activeselected %>"  href="#/active">Active</a>
         </li>
         <li>
-            <a href="#/completed" data-hook="completed-mode">Completed</a>
+            <a class="<%= data.completedselected %>" href="#/completed">Completed</a>
         </li>
     </ul>
-    <button id="clear-completed" data-hook="clear-completed">Clear completed</button>
+    <button id="clear-completed">Clear completed</button>
 </footer>
