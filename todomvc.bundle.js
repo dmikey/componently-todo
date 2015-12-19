@@ -29,7 +29,7 @@ module.exports = function (data) {
 
     base.call(this, templates['templates/footer.html'], data);
 };
-},{"../templates":7,"chemical/base":9}],2:[function(require,module,exports){
+},{"../templates":9,"chemical/base":11}],2:[function(require,module,exports){
 'use strict';
 
 var
@@ -42,7 +42,7 @@ module.exports = function(data) {
     base.call(this, templates['templates/header.html'], data);
 };
 
-},{"../templates":7,"chemical/base":9}],3:[function(require,module,exports){
+},{"../templates":9,"chemical/base":11}],3:[function(require,module,exports){
 'use strict';
 
 var
@@ -59,7 +59,7 @@ module.exports = function(data) {
     base.call(this, templates['templates/main.html'], data);
 };
 
-},{"../templates":7,"./todo":4,"chemical/base":9}],4:[function(require,module,exports){
+},{"../templates":9,"./todo":4,"chemical/base":11}],4:[function(require,module,exports){
 'use strict';
 
 var
@@ -72,17 +72,59 @@ module.exports = function(data) {
     base.call(this, templates['templates/todo.html'], data);
 };
 
-},{"../templates":7,"chemical/base":9}],5:[function(require,module,exports){
-document.addEventListener('click', function(event){
-    var
-        target = event.target;
-    
-    if(target.id === 'clear-completed') {
+},{"../templates":9,"chemical/base":11}],5:[function(require,module,exports){
+module.exports = {
+    ENTER_KEY: 13,
+    ESCAPE_KEY: 27
+};
+},{}],6:[function(require,module,exports){
+var
+    constants = require('../constants');
+
+var
+    store = require('../stores/todo');
+
+document.addEventListener('click', function (event) {
+    var target = event.target;
+
+    // clear completed items
+    if (target.id === 'clear-completed') {
         console.log('clear the completed stuffs');
     }
     
-}, false)
-},{}],6:[function(require,module,exports){
+    //if the toggle checked
+    if(target.className.indexOf('toggle') > -1) {
+        var li = target.parentNode.parentNode;
+        
+        if(target.checked) {
+            li.className = 'completed';
+        } else {
+            li.className = ''; 
+        }
+    }
+}, false);
+
+window.addEventListener('keypress', function (event) {
+    if (event.keyCode === constants.ENTER_KEY) {
+       if('new-todo' === event.target.id) {
+           //new todo
+           var todo = event.target.value;
+           store.add({label: todo});
+           event.target.value = '';
+           
+           var e = new Event('todo-view-update');
+           e.data = store.get();
+           document.dispatchEvent(e);
+       }
+    }
+}, false);
+
+window.addEventListener('keyup', function (event) {
+    if (event.keyCode === constants.ESCAPE_KEY) {
+       
+    }
+}, false);
+},{"../constants":5,"../stores/todo":8}],7:[function(require,module,exports){
 /* chemical components for helpers */
 var
     router = require('chemical/router');
@@ -125,7 +167,20 @@ if (router.routes[location.pathname]) {
     var hash = location.hash.replace('#', '');
     router.change(hash);
 }
-},{"./views/main":8,"chemical/router":16}],7:[function(require,module,exports){
+},{"./views/main":10,"chemical/router":18}],8:[function(require,module,exports){
+var
+    todos = [];
+
+
+module.exports = {
+    add: function(item) {
+        todos.push(item);
+    },
+    get: function() {
+        return todos;
+    }
+}
+},{}],9:[function(require,module,exports){
 this["JST"] = this["JST"] || {};
 
 this["JST"]["templates/footer.html"] = function(data) {
@@ -176,39 +231,31 @@ return __p
 var _ = {escape: escape};
 
 module.exports =this["JST"];
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 //import components
-var 
-    Container = require('chemical/container');
+var Container = require('chemical/container');
 
-var
-    Header = require('../components/header'),
+var Header = require('../components/header'),
     Main = require('../components/main'),
     Todo = require('../components/todo'),
     Footer = require('../components/footer');
 
-var
-    Controller = require('../controllers/todo');
+var Controller = require('../controllers/todo');
+
 
 //declare and name components for exporting
 //chemical does NOT do this by default, YOU decide
 //when you need this
-var 
-    components = {
+var components = {
         header:  new Header({}),
         main: new Main({
-            content: [
-                {label: 'test'}
-            ]
+            content: []
         }),
         footer: new Footer({})
-    }
-
-window.footer = components.footer;
+    };
 
 //compose view
-var
-    container = new Container({
+var container = new Container({
     components:[
         components.header,
         components.main,
@@ -216,10 +263,14 @@ var
     ]
 });
 
+document.addEventListener('todo-view-update', function(event){
+    components.main.data({content: event.data});
+}, false);
+
 //we want to export our components
 container.components = components;
 module.exports = container;
-},{"../components/footer":1,"../components/header":2,"../components/main":3,"../components/todo":4,"../controllers/todo":5,"chemical/container":11}],9:[function(require,module,exports){
+},{"../components/footer":1,"../components/header":2,"../components/main":3,"../components/todo":4,"../controllers/todo":6,"chemical/container":13}],11:[function(require,module,exports){
 'use strict';
 
 var
@@ -237,12 +288,27 @@ module.exports = function (templatePath, data) {
     }
 
     this.data = function (_data) {
+        var
+            redraw = false;
         /* setup template binding */
         for (var _k in this) {
             var d = _data[_k];
             if (d) {
+
+                //if this object is the same
+                //it's contents might be different
+                //so we should request a redraw
+                if(this[_k] === _data[_k]) {
+                    redraw = true;
+                }
                 this[_k] = _data[_k];
             }
+        }
+
+        //prevents the possibility of the observer
+        //firing and requesting a redraw
+        if(redraw) {
+            this.redraw();
         }
     };
 
@@ -266,21 +332,27 @@ module.exports = function (templatePath, data) {
         target.appendChild(this.node);
     };
 
+    this.redraw = function () {
+        console.log('redraw');
+
+        if (this.parent) {
+            this.parent.redraw();
+        } else {
+            var oldnode = this.node;
+            this.setup();
+            this.target.replaceChild(this.node, oldnode);
+        }
+    }
+
     observe(this, function (change) {
         if (change.name !== 'innerHTML' && change.name !== 'innerHTML' && change.name !== 'parent' && change.name !== 'node' && change.name !== 'fragment') {
             /* we need to update this widget alone if no parent */
-            if (this.parent) {
-                this.parent.redraw();
-            } else {
-                var oldnode = this.node;
-                this.setup();
-                this.target.replaceChild(this.node, oldnode);
-            }
+            this.redraw();
         }
     }.bind(this))
 
 };
-},{"./lib/templates/index":12,"./lib/utils/document":14,"./lib/utils/observe":15}],10:[function(require,module,exports){
+},{"./lib/templates/index":14,"./lib/utils/document":16,"./lib/utils/observe":17}],12:[function(require,module,exports){
 'use strict';
 
 var
@@ -396,7 +468,7 @@ module.exports = function (data) {
         }
     };
 };
-},{"./lib/utils/debounce":13,"./lib/utils/document":14}],11:[function(require,module,exports){
+},{"./lib/utils/debounce":15,"./lib/utils/document":16}],13:[function(require,module,exports){
 'use strict';
 
 var
@@ -406,7 +478,7 @@ module.exports = function(data) {
     return new Block(data);
 };
 
-},{"./block":10}],12:[function(require,module,exports){
+},{"./block":12}],14:[function(require,module,exports){
 this["JST"] = this["JST"] || {};
 
 this["JST"]["anchor.html"] = function(data) {
@@ -517,7 +589,7 @@ return __p
 var _ = {escape: escape};
 
 module.exports =this["JST"];
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 module.exports = function(fn, delay) {
   var timer = null;
   var firstRun = true;
@@ -529,7 +601,7 @@ module.exports = function(fn, delay) {
     }, delay);
   };
 }
-},{}],14:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 /*
     server side fill, for document
     module uses, help us build robust server rendered
@@ -579,7 +651,7 @@ var fill = {
 };
 
 module.exports = fill;
-},{}],15:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 module.exports = function(obj, cb, data) {
 
      /* leaving this off of node side for right now */
@@ -596,7 +668,7 @@ module.exports = function(obj, cb, data) {
         console.warn('Observables not supports, please polyfill');
     }
 }
-},{}],16:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 'use strict';
 
 function router() {
@@ -686,4 +758,4 @@ function router() {
 var instance;
 module.exports = instance = instance || router();
 
-},{}]},{},[6]);
+},{}]},{},[7]);
