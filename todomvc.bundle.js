@@ -92,15 +92,13 @@ document.addEventListener('click', function (event) {
         console.log('clear the completed stuffs');
     }
     
-    //if the toggle checked
+    // if the toggle checked
     if(target.className.indexOf('toggle') > -1) {
-        var li = target.parentNode.parentNode;
         
-        if(target.checked) {
-            li.className = 'completed';
-        } else {
-            li.className = ''; 
-        }
+        // update the store
+        var li = target.parentNode.parentNode;
+        var status = target.checked ? 'completed' : '';
+        store.update(li.getAttribute('data-index'), {status: status})
     }
 }, false);
 
@@ -171,13 +169,20 @@ if (router.routes[location.pathname]) {
 var
     todos = [];
 
-
 module.exports = {
     add: function(item) {
         todos.push(item);
     },
     get: function() {
         return todos;
+    },
+    update: function(idx, props) {
+        for (var k in props) {
+            todos[idx][k] = props[k];
+        }
+        var e = new Event('todo-store-updated');
+        e.data = todos;
+        document.dispatchEvent(e);
     }
 }
 },{}],9:[function(require,module,exports){
@@ -209,7 +214,7 @@ __p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <l
 __p += '\n            ';
  for(var i = 0; i < data.content.length; i++) { ;
 __p += '\n                ';
- var todo = new this.todo({ content: data.content[i].label });  todo.setup();;
+ var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
 __p += '\n                ' +
 ((__t = ( todo.innerHTML )) == null ? '' : __t) +
 '\n            ';
@@ -222,7 +227,13 @@ return __p
 
 this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-__p += '<li class="">\n    <div class="view">\n        <input type="checkbox" class="toggle">\n        <label>' +
+__p += '<li class="' +
+((__t = ( data.status )) == null ? '' : __t) +
+'" data-index="' +
+((__t = ( data.index )) == null ? '' : __t) +
+'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
+((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
+'>\n        <label>' +
 ((__t = ( data.content )) == null ? '' : __t) +
 '</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
 return __p
@@ -266,6 +277,10 @@ var container = new Container({
 document.addEventListener('todo-view-update', function(event){
     components.main.data({content: event.data});
 }, false);
+
+document.addEventListener('todo-store-updated', function(event){
+    components.main.data({content: event.data});
+});
 
 //we want to export our components
 container.components = components;
@@ -333,8 +348,6 @@ module.exports = function (templatePath, data) {
     };
 
     this.redraw = function () {
-        console.log('redraw');
-
         if (this.parent) {
             this.parent.redraw();
         } else {

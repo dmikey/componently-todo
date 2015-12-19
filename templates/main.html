@@ -4,7 +4,7 @@
     <ul id="todo-list">
         <% if(data.content) { %>
             <% for(var i = 0; i < data.content.length; i++) { %>
-                <% var todo = new this.todo({ content: data.content[i].label });  todo.setup();%>
+                <% var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();%>
                 <%= todo.innerHTML %>
             <% } %>
         <% } %>

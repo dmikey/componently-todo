@@ -26,7 +26,7 @@ __p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <l
 __p += '\n            ';
  for(var i = 0; i < data.content.length; i++) { ;
 __p += '\n                ';
- var todo = new this.todo({ content: data.content[i].label });  todo.setup();;
+ var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
 __p += '\n                ' +
 ((__t = ( todo.innerHTML )) == null ? '' : __t) +
 '\n            ';
@@ -39,7 +39,13 @@ return __p
 
 this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-__p += '<li class="">\n    <div class="view">\n        <input type="checkbox" class="toggle">\n        <label>' +
+__p += '<li class="' +
+((__t = ( data.status )) == null ? '' : __t) +
+'" data-index="' +
+((__t = ( data.index )) == null ? '' : __t) +
+'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
+((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
+'>\n        <label>' +
 ((__t = ( data.content )) == null ? '' : __t) +
 '</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
 return __p

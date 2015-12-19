@@ -33,6 +33,10 @@ document.addEventListener('todo-view-update', function(event){
     components.main.data({content: event.data});
 }, false);
 
+document.addEventListener('todo-store-updated', function(event){
+    components.main.data({content: event.data});
+});
+
 //we want to export our components
 container.components = components;
 module.exports = container;

@@ -12,15 +12,13 @@ document.addEventListener('click', function (event) {
         console.log('clear the completed stuffs');
     }
     
-    //if the toggle checked
+    // if the toggle checked
     if(target.className.indexOf('toggle') > -1) {
-        var li = target.parentNode.parentNode;
         
-        if(target.checked) {
-            li.className = 'completed';
-        } else {
-            li.className = ''; 
-        }
+        // update the store
+        var li = target.parentNode.parentNode;
+        var status = target.checked ? 'completed' : '';
+        store.update(li.getAttribute('data-index'), {status: status})
     }
 }, false);
 
