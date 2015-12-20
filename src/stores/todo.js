@@ -1,25 +1,73 @@
-var
-    todos = [];
+var todos = [];
+var lastquery;
+var filter = void(0);
 
 module.exports = {
     viewstate: {},
-    add: function(item) {
+    filter: function(query) {
+        if(!query){
+            filter = void(0);
+            return;
+        }
+        
+        filter = this.find(query);
+        lastquery = query;
+    },
+    add: function (item) {
+        item.status = '';
         todos.push(item);
+        
+        if(filter) {
+            this.filter(lastquery);
+        }
+        
         this.dispatch();
     },
-    get: function() {
+    get: function () {
+        if(filter) {
+            return filter;
+        }
         return todos;
     },
-    update: function(idx, props, nodraw) {
+    update: function (idx, props, nodraw) {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
         this.dispatch(nodraw);
     },
-    dispatch: function(nodraw){
+    dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
+    },
+    delete: function (idx) {
+        if (idx instanceof Array) {
+            for (var i = idx.length - 1; i >= 0; i--) {
+               todos.splice(idx[i].index, 1); 
+            }
+        } else {
+            todos.splice(idx, 1);
+        }
+        var e = new Event('todo-store-updated');
+        e.store = this;
+        document.dispatchEvent(e);
+    },
+    find: function (query) {
+        var results = [];
+        for (var i = 0; i < todos.length; i++) {
+            var todo = todos[i];
+            var match = true;
+            for (var k in query) {
+                if(todo[k] !== query[k]) {
+                    match = false;
+                }
+            }
+            if(match) {
+                todo.index = i;
+                results.push(todo);
+            }
+        }
+        return results;
     }
 }

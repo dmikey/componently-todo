@@ -1,17 +1,22 @@
-var
-    constants = require('../constants');
+var noop = require('chemical/noop');
+var constants = require('../constants');
+var store = require('../stores/todo');
+var transitionEnded = noop;
 
-var
-    store = require('../stores/todo');
-
-window.store = store;
+// event handling
+document.addEventListener('transitionend', function() {
+    transitionEnded();
+    transitionEnded = noop;
+});
 
 document.addEventListener('click', function (event) {
     var target = event.target;
 
     // clear completed items
     if (target.id === 'clear-completed') {
-        console.log('clear the completed stuffs');
+        store.delete(store.find({
+            status: 'completed'
+        }));
         return;
     }
 
@@ -20,35 +25,42 @@ document.addEventListener('click', function (event) {
         var todos = store.get();
         var status = target.checked ? 'completed' : '';
         
-        
         // set view meta data we want before the store
         // notifies the view of updates to items
         store.viewstate.toggleall = target.checked ? 'checked' : '';
-        
+
         // update all the todos to be completed
         for (var i = 0; i < todos.length; i++) {
             store.update(i, {
                 status: status
             }, false)
         }
-        
+
         return;
     }
 
+    // if the toggle checked
+    if (target.className.indexOf('destroy') > -1) {
+        // update the store
+        var li = target.parentNode.parentNode;
+        store.delete(li.getAttribute('data-index'));
+    }
+    
     // if the toggle checked
     if (target.className.indexOf('toggle') > -1) {
 
         // update the store
         var li = target.parentNode.parentNode;
         var status = target.checked ? 'completed' : '';
-
+        
         // set the class on the DOM for animated strike through
         li.className = status;
-
-        // update the store with no redraw
-        store.update(li.getAttribute('data-index'), {
-            status: status
-        }, false)
+        transitionEnded = function(){
+            // update the store with no redraw
+            store.update(li.getAttribute('data-index'), {
+                status: status
+            }, true)
+        }
     }
 }, false);
 
@@ -60,11 +72,8 @@ window.addEventListener('keypress', function (event) {
             store.add({
                 label: todo
             });
+            
             event.target.value = '';
-
-            var e = new Event('todo-view-update');
-            e.data = store.get();
-            document.dispatchEvent(e);
         }
         return;
     }
@@ -79,3 +88,17 @@ window.addEventListener('keyup', function (event) {
 
     }
 }, false);
+
+
+// exportable api
+module.exports = {
+    filter: function(query) {
+        if(query) {
+            store.filter(query);
+            store.dispatch();
+        } else {
+            store.filter();
+            store.dispatch();
+        }
+    }
+};

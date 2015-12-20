@@ -8,7 +8,6 @@ var Header = require('../components/header'),
 
 var Controller = require('../controllers/todo');
 
-
 // declare and name components for exporting
 // chemical does NOT do this by default, YOU decide
 // when you need this
@@ -22,9 +21,6 @@ var components = {
         })
     };
 
-// debugging 
-window.main = components.main;
-
 // compose view
 var container = new Container({
     components:[
@@ -37,10 +33,11 @@ var container = new Container({
 document.addEventListener('todo-store-updated', function(event){
     var store = event.store;
     var viewstate = store.viewstate;
-    
-    components.footer.itemsleft = 10;
+
+    // find all todos where status is empty
+    components.footer.itemsleft = store.find({status:''}).length;
     components.main.toggleall = viewstate.toggleall ? 'checked' : '';
-    components.main.data({content: store.get()}, event.nodraw);
+    components.main.data({content: store.get()});
 }, false);
 
 //we want to export our components

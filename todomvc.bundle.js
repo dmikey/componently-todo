@@ -7,6 +7,9 @@ var
 var
     templates = require('../templates');
 
+var
+    controller = require('../controllers/todo');
+
 module.exports = function (data) {
     data.allselected = data.allselected ? 'selected' : '';
     data.activeselected = data.allselected ? 'selected' : '';
@@ -23,13 +26,22 @@ module.exports = function (data) {
             this.allselected = '';
             this.activeselected = '';
             this.completedselected = '';
-            this[map[value]] = 'selected'
+            this[map[value]] = 'selected';
+            
+            var filter = (value === 'completed') ? value : '';
+            if(value === 'all') {
+                controller.filter();
+            } else {
+                controller.filter({status: filter});
+            }
         };
+        
+        
     };
 
     base.call(this, templates['templates/footer.html'], data);
 };
-},{"../templates":9,"chemical/base":11}],2:[function(require,module,exports){
+},{"../controllers/todo":6,"../templates":9,"chemical/base":11}],2:[function(require,module,exports){
 'use strict';
 
 var
@@ -78,20 +90,31 @@ module.exports = {
     ESCAPE_KEY: 27
 };
 },{}],6:[function(require,module,exports){
+var 
+    noop = require('chemical/noop');
+
 var
     constants = require('../constants');
 
 var
     store = require('../stores/todo');
 
-window.store = store;
+var 
+    transitionEnded = noop;
+
+document.addEventListener('transitionend', function() {
+    transitionEnded();
+    transitionEnded = noop;
+});
 
 document.addEventListener('click', function (event) {
     var target = event.target;
 
     // clear completed items
     if (target.id === 'clear-completed') {
-        console.log('clear the completed stuffs');
+        store.delete(store.find({
+            status: 'completed'
+        }));
         return;
     }
 
@@ -100,35 +123,42 @@ document.addEventListener('click', function (event) {
         var todos = store.get();
         var status = target.checked ? 'completed' : '';
         
-        
         // set view meta data we want before the store
         // notifies the view of updates to items
         store.viewstate.toggleall = target.checked ? 'checked' : '';
-        
+
         // update all the todos to be completed
         for (var i = 0; i < todos.length; i++) {
             store.update(i, {
                 status: status
             }, false)
         }
-        
+
         return;
     }
 
+    // if the toggle checked
+    if (target.className.indexOf('destroy') > -1) {
+        // update the store
+        var li = target.parentNode.parentNode;
+        store.delete(li.getAttribute('data-index'));
+    }
+    
     // if the toggle checked
     if (target.className.indexOf('toggle') > -1) {
 
         // update the store
         var li = target.parentNode.parentNode;
         var status = target.checked ? 'completed' : '';
-
+        
         // set the class on the DOM for animated strike through
         li.className = status;
-
-        // update the store with no redraw
-        store.update(li.getAttribute('data-index'), {
-            status: status
-        }, false)
+        transitionEnded = function(){
+            // update the store with no redraw
+            store.update(li.getAttribute('data-index'), {
+                status: status
+            }, true)
+        }
     }
 }, false);
 
@@ -140,11 +170,8 @@ window.addEventListener('keypress', function (event) {
             store.add({
                 label: todo
             });
+            
             event.target.value = '';
-
-            var e = new Event('todo-view-update');
-            e.data = store.get();
-            document.dispatchEvent(e);
         }
         return;
     }
@@ -159,26 +186,35 @@ window.addEventListener('keyup', function (event) {
 
     }
 }, false);
-},{"../constants":5,"../stores/todo":8}],7:[function(require,module,exports){
-/* chemical components for helpers */
-var
-    router = require('chemical/router');
 
-/* render view */
-var
-    MainView = require('./views/main');
+module.exports = {
+    filter: function(query) {
+        if(query) {
+            console.log(query);
+            store.filter(query);
+            store.dispatch();
+        } else {
+            store.filter();
+            store.dispatch();
+        }
+    }
+};
+},{"../constants":5,"../stores/todo":8,"chemical/noop":18}],7:[function(require,module,exports){
+// import helpers
+var router = require('chemical/router');
 
-var
-    target = document.querySelector('#todoapp');
+// render view
+var MainView = require('./views/main');
+var target = document.querySelector('#todoapp');
 
 MainView.renderInto(target);
 
+
+// application routes for todo
 router.intitialize(function (route) {
-    //404
+    // 404
 });
 
-
-//application routes for todo
 router.bind('/', function () {
     MainView.components.footer.setActiveFilter('all');
 });
@@ -192,40 +228,85 @@ router.bind('/completed', function () {
 });
 
 
-/* 
- * control router functions when hitting
- * the page for the first time 
- */
+// controls first view
 if (router.routes[location.pathname]) {
     router.routes[location.pathname]();
 } else {
     var hash = location.hash.replace('#', '');
     router.change(hash);
 }
-},{"./views/main":10,"chemical/router":18}],8:[function(require,module,exports){
-var
-    todos = [];
+},{"./views/main":10,"chemical/router":19}],8:[function(require,module,exports){
+var todos = [];
+var lastquery;
+var filter = void(0);
 
 module.exports = {
     viewstate: {},
-    add: function(item) {
+    filter: function(query) {
+        if(!query){
+            filter = void(0);
+            return;
+        }
+        
+        filter = this.find(query);
+        lastquery = query;
+    },
+    add: function (item) {
+        item.status = '';
         todos.push(item);
+        
+        if(filter) {
+            this.filter(lastquery);
+        }
+        
         this.dispatch();
     },
-    get: function() {
+    get: function () {
+        if(filter) {
+            return filter;
+        }
         return todos;
     },
-    update: function(idx, props, nodraw) {
+    update: function (idx, props, nodraw) {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
         this.dispatch(nodraw);
     },
-    dispatch: function(nodraw){
+    dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
+    },
+    delete: function (idx) {
+        if (idx instanceof Array) {
+            for (var i = idx.length - 1; i >= 0; i--) {
+               todos.splice(idx[i].index, 1); 
+            }
+        } else {
+            todos.splice(idx, 1);
+        }
+        var e = new Event('todo-store-updated');
+        e.store = this;
+        document.dispatchEvent(e);
+    },
+    find: function (query) {
+        var results = [];
+        for (var i = 0; i < todos.length; i++) {
+            var todo = todos[i];
+            var match = true;
+            for (var k in query) {
+                if(todo[k] !== query[k]) {
+                    match = false;
+                }
+            }
+            if(match) {
+                todo.index = i;
+                results.push(todo);
+            }
+        }
+        return results;
     }
 }
 },{}],9:[function(require,module,exports){
@@ -300,7 +381,6 @@ var Header = require('../components/header'),
 
 var Controller = require('../controllers/todo');
 
-
 // declare and name components for exporting
 // chemical does NOT do this by default, YOU decide
 // when you need this
@@ -314,9 +394,6 @@ var components = {
         })
     };
 
-// debugging 
-window.main = components.main;
-
 // compose view
 var container = new Container({
     components:[
@@ -329,10 +406,11 @@ var container = new Container({
 document.addEventListener('todo-store-updated', function(event){
     var store = event.store;
     var viewstate = store.viewstate;
-    
-    components.footer.itemsleft = 10;
+
+    // find all todos where status is empty
+    components.footer.itemsleft = store.find({status:''}).length;
     components.main.toggleall = viewstate.toggleall ? 'checked' : '';
-    components.main.data({content: store.get()}, event.nodraw);
+    components.main.data({content: store.get()});
 }, false);
 
 //we want to export our components
@@ -741,6 +819,8 @@ module.exports = function(obj, cb, data) {
     }
 }
 },{}],18:[function(require,module,exports){
+module.exports = function(){};
+},{}],19:[function(require,module,exports){
 'use strict';
 
 function router() {

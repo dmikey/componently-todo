@@ -6,6 +6,9 @@ var
 var
     templates = require('../templates');
 
+var
+    controller = require('../controllers/todo');
+
 module.exports = function (data) {
     data.allselected = data.allselected ? 'selected' : '';
     data.activeselected = data.allselected ? 'selected' : '';
@@ -22,8 +25,17 @@ module.exports = function (data) {
             this.allselected = '';
             this.activeselected = '';
             this.completedselected = '';
-            this[map[value]] = 'selected'
+            this[map[value]] = 'selected';
+            
+            var filter = (value === 'completed') ? value : '';
+            if(value === 'all') {
+                controller.filter();
+            } else {
+                controller.filter({status: filter});
+            }
         };
+        
+        
     };
 
     base.call(this, templates['templates/footer.html'], data);

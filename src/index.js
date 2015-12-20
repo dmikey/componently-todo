@@ -1,22 +1,18 @@
-/* chemical components for helpers */
-var
-    router = require('chemical/router');
+// import helpers
+var router = require('chemical/router');
 
-/* render view */
-var
-    MainView = require('./views/main');
-
-var
-    target = document.querySelector('#todoapp');
+// render view
+var MainView = require('./views/main');
+var target = document.querySelector('#todoapp');
 
 MainView.renderInto(target);
 
+
+// application routes for todo
 router.intitialize(function (route) {
-    //404
+    // 404
 });
 
-
-//application routes for todo
 router.bind('/', function () {
     MainView.components.footer.setActiveFilter('all');
 });
@@ -30,10 +26,7 @@ router.bind('/completed', function () {
 });
 
 
-/* 
- * control router functions when hitting
- * the page for the first time 
- */
+// controls first view
 if (router.routes[location.pathname]) {
     router.routes[location.pathname]();
 } else {
