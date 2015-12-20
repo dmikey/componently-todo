@@ -2,7 +2,9 @@ this["JST"] = this["JST"] || {};
 
 this["JST"]["templates/footer.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-__p += '<footer id="footer">\n    <span id="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="' +
+__p += '<footer id="footer">\n    <span id="todo-count"><strong>' +
+((__t = ( data.itemsleft )) == null ? '' : __t) +
+'</strong> items left</span>\n    <ul id="filters">\n        <li>\n            <a class="' +
 ((__t = ( data.allselected )) == null ? '' : __t) +
 '" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
 ((__t = ( data.activeselected )) == null ? '' : __t) +
@@ -21,7 +23,9 @@ return __p
 this["JST"]["templates/main.html"] = function(data) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
-__p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
+__p += '<section id="main">\n    <input id="toggle-all" type="checkbox" ' +
+((__t = ( data.toggleall )) == null ? '' : __t) +
+'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
  if(data.content) { ;
 __p += '\n            ';
  for(var i = 0; i < data.content.length; i++) { ;

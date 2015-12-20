@@ -84,39 +84,71 @@ var
 var
     store = require('../stores/todo');
 
+window.store = store;
+
 document.addEventListener('click', function (event) {
     var target = event.target;
 
     // clear completed items
     if (target.id === 'clear-completed') {
         console.log('clear the completed stuffs');
+        return;
     }
-    
-    // if the toggle checked
-    if(target.className.indexOf('toggle') > -1) {
+
+    if (target.id === 'toggle-all') {
+        // get all todos from the store
+        var todos = store.get();
+        var status = target.checked ? 'completed' : '';
         
+        
+        // set view meta data we want before the store
+        // notifies the view of updates to items
+        store.viewstate.toggleall = target.checked ? 'checked' : '';
+        
+        // update all the todos to be completed
+        for (var i = 0; i < todos.length; i++) {
+            store.update(i, {
+                status: status
+            }, false)
+        }
+        
+        return;
+    }
+
+    // if the toggle checked
+    if (target.className.indexOf('toggle') > -1) {
+
         // update the store
         var li = target.parentNode.parentNode;
         var status = target.checked ? 'completed' : '';
-        store.update(li.getAttribute('data-index'), {status: status})
+
+        // set the class on the DOM for animated strike through
+        li.className = status;
+
+        // update the store with no redraw
+        store.update(li.getAttribute('data-index'), {
+            status: status
+        }, false)
     }
 }, false);
 
 window.addEventListener('keypress', function (event) {
     if (event.keyCode === constants.ENTER_KEY) {
-       if('new-todo' === event.target.id) {
-           //new todo
-           var todo = event.target.value;
-           store.add({label: todo});
-           event.target.value = '';
-           
-           var e = new Event('todo-view-update');
-           e.data = store.get();
-           document.dispatchEvent(e);
-       }
-       return;
+        if ('new-todo' === event.target.id) {
+            //new todo
+            var todo = event.target.value;
+            store.add({
+                label: todo
+            });
+            event.target.value = '';
+
+            var e = new Event('todo-view-update');
+            e.data = store.get();
+            document.dispatchEvent(e);
+        }
+        return;
     }
-    
+
     // focus on the new-todo input box if someone is 
     // typing a todo
     document.getElementById('new-todo').focus();
@@ -124,7 +156,7 @@ window.addEventListener('keypress', function (event) {
 
 window.addEventListener('keyup', function (event) {
     if (event.keyCode === constants.ESCAPE_KEY) {
-       
+
     }
 }, false);
 },{"../constants":5,"../stores/todo":8}],7:[function(require,module,exports){
@@ -175,18 +207,24 @@ var
     todos = [];
 
 module.exports = {
+    viewstate: {},
     add: function(item) {
         todos.push(item);
+        this.dispatch();
     },
     get: function() {
         return todos;
     },
-    update: function(idx, props) {
+    update: function(idx, props, nodraw) {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
+        this.dispatch(nodraw);
+    },
+    dispatch: function(nodraw){
         var e = new Event('todo-store-updated');
-        e.data = todos;
+        e.nodraw = nodraw;
+        e.store = this;
         document.dispatchEvent(e);
     }
 }
@@ -195,7 +233,9 @@ this["JST"] = this["JST"] || {};
 
 this["JST"]["templates/footer.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-__p += '<footer id="footer">\n    <span id="todo-count"></span>\n    <ul id="filters">\n        <li>\n            <a class="' +
+__p += '<footer id="footer">\n    <span id="todo-count"><strong>' +
+((__t = ( data.itemsleft )) == null ? '' : __t) +
+'</strong> items left</span>\n    <ul id="filters">\n        <li>\n            <a class="' +
 ((__t = ( data.allselected )) == null ? '' : __t) +
 '" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
 ((__t = ( data.activeselected )) == null ? '' : __t) +
@@ -214,7 +254,9 @@ return __p
 this["JST"]["templates/main.html"] = function(data) {
 var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
 function print() { __p += __j.call(arguments, '') }
-__p += '<section id="main">\n    <input id="toggle-all" type="checkbox">\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
+__p += '<section id="main">\n    <input id="toggle-all" type="checkbox" ' +
+((__t = ( data.toggleall )) == null ? '' : __t) +
+'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
  if(data.content) { ;
 __p += '\n            ';
  for(var i = 0; i < data.content.length; i++) { ;
@@ -259,18 +301,23 @@ var Header = require('../components/header'),
 var Controller = require('../controllers/todo');
 
 
-//declare and name components for exporting
-//chemical does NOT do this by default, YOU decide
-//when you need this
+// declare and name components for exporting
+// chemical does NOT do this by default, YOU decide
+// when you need this
 var components = {
         header:  new Header({}),
         main: new Main({
             content: []
         }),
-        footer: new Footer({})
+        footer: new Footer({
+            itemsleft: 0
+        })
     };
 
-//compose view
+// debugging 
+window.main = components.main;
+
+// compose view
 var container = new Container({
     components:[
         components.header,
@@ -279,13 +326,14 @@ var container = new Container({
     ]
 });
 
-document.addEventListener('todo-view-update', function(event){
-    components.main.data({content: event.data});
-}, false);
-
 document.addEventListener('todo-store-updated', function(event){
-    components.main.data({content: event.data});
-});
+    var store = event.store;
+    var viewstate = store.viewstate;
+    
+    components.footer.itemsleft = 10;
+    components.main.toggleall = viewstate.toggleall ? 'checked' : '';
+    components.main.data({content: store.get()}, event.nodraw);
+}, false);
 
 //we want to export our components
 container.components = components;
@@ -307,9 +355,12 @@ module.exports = function (templatePath, data) {
         this[k] = data[k];
     }
 
-    this.data = function (_data) {
+    var isUpdating = false;
+    this.data = function (_data, nodraw) {
         var
             redraw = false;
+
+        isUpdating = true;
         /* setup template binding */
         for (var _k in this) {
             var d = _data[_k];
@@ -318,16 +369,17 @@ module.exports = function (templatePath, data) {
                 //if this object is the same
                 //it's contents might be different
                 //so we should request a redraw
-                if(this[_k] === _data[_k]) {
+                if (this[_k] === _data[_k]) {
                     redraw = true;
                 }
                 this[_k] = _data[_k];
             }
         }
+        isUpdating = false;
 
         //prevents the possibility of the observer
         //firing and requesting a redraw
-        if(redraw) {
+        if (redraw && !nodraw) {
             this.redraw();
         }
     };
@@ -353,12 +405,14 @@ module.exports = function (templatePath, data) {
     };
 
     this.redraw = function () {
-        if (this.parent) {
-            this.parent.redraw();
-        } else {
-            var oldnode = this.node;
-            this.setup();
-            this.target.replaceChild(this.node, oldnode);
+        if (!isUpdating) {
+            if (this.parent) {
+                this.parent.redraw();
+            } else {
+                var oldnode = this.node;
+                this.setup();
+                this.target.replaceChild(this.node, oldnode);
+            }
         }
     }
 
@@ -467,7 +521,7 @@ module.exports = function (data) {
         component.renderInto(target);
     };
 
-    var draw = debounce(this._draw.bind(this), 150);
+    var draw = debounce(this._draw.bind(this), 80);
 
     this.redraw = function () {
         draw(this);
