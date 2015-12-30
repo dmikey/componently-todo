@@ -1,11 +1,12 @@
 'use strict';
 
 var
-    base = require('chemical/base');
+    component = require('chemical/component');
 
 var
     templates = require('../templates');
 
 module.exports = function(data) {
-    base.call(this, templates['templates/todo.html'], data);
+    data.template = templates['templates/todo.html']; 
+    component.call(this, data);
 };

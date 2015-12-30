@@ -1,5 +1,5 @@
 //import components
-var Container = require('chemical/container');
+var Component = require('chemical/component');
 
 var Header = require('../components/header'),
     Main = require('../components/main'),
@@ -22,8 +22,8 @@ var components = {
     };
 
 // compose view
-var container = new Container({
-    components:[
+var container = new Component({
+    components: [
         components.header,
         components.main,
         components.footer
@@ -41,5 +41,4 @@ document.addEventListener('todo-store-updated', function(event){
 }, false);
 
 //we want to export our components
-container.components = components;
 module.exports = container;

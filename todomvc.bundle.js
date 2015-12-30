@@ -1,826 +1,146 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-'use strict';
-
-var
-    base = require('chemical/base');
-
-var
-    templates = require('../templates');
-
-var
-    controller = require('../controllers/todo');
-
 module.exports = function (data) {
-    data.allselected = data.allselected ? 'selected' : '';
-    data.activeselected = data.allselected ? 'selected' : '';
-    data.completedselected = data.allselected ? 'selected' : '';
 
-    this.setActiveFilter = function (value) {
-        var map = {
-            active: 'activeselected',
-            all: 'allselected',
-            completed: 'completedselected'
+    var document = typeof (window) === 'object' ? window.document : {
+        createElement: function (type) {
+            return {
+                setAttribute: function () {}
+            }
+        }
+    };
+
+    // merge a passed object, to this
+    this.data = function (data) {
+        this.oldnode = this.node;
+        for (var k in data) {
+            this[k] = data[k];
         };
 
-        if (map[value]) {
-            this.allselected = '';
-            this.activeselected = '';
-            this.completedselected = '';
-            this[map[value]] = 'selected';
-            
-            var filter = (value === 'completed') ? value : '';
-            if(value === 'all') {
-                controller.filter();
-            } else {
-                controller.filter({status: filter});
-            }
+        this.tag = this.tag || 'div';
+
+        return this;
+    };
+
+    // update the components UI
+    this.update = function (data) {
+        if (data) this.data(data);
+
+        this.render();
+        var target = this.target || this.parent;
+
+        if (target) {
+            target.replaceChild(this.node, this.oldnode);
+        }
+    }
+
+    // setup this component
+    this.render = function () {
+        this.renderDOM();
+        this.renderOuterHTML(this.innerHTML);
+        return this;
+    };
+
+    // render the html of this component
+    this.renderHTML = function () {
+        if (this.components) {
+            this.innerHTML = this.renderComponents();
         };
-        
-        
+
+        var template = this.template || function (data) {
+            return data.innerHTML;
+        };
+
+        this.innerHTML = template(this);
+
+        if(typeof this.innerHTML === 'function') {
+            this.innerHTML = '(' + this.innerHTML.toString() + ')()';
+        }
+
+        return this.innerHTML;
     };
 
-    base.call(this, templates['templates/footer.html'], data);
-};
-},{"../controllers/todo":6,"../templates":9,"chemical/base":11}],2:[function(require,module,exports){
-'use strict';
+    // render the outer HTML for this element
+    this.renderOuterHTML = function (html) {
+        this.outerHTML = '';
 
-var
-    base = require('chemical/base');
+        if (this.node.outerHTML) return this.node.outerHTML;
 
-var
-    templates = require('../templates');
+        this.outerHTML += '<' + this.tag;
 
-module.exports = function(data) {
-    base.call(this, templates['templates/header.html'], data);
-};
+        for (var k in this.attributes) {
+            this.outerHTML += ' ';
+            this.outerHTML += k + '="' + this.attributes[k] + '"';
+        };
 
-},{"../templates":9,"chemical/base":11}],3:[function(require,module,exports){
-'use strict';
+        this.outerHTML += '>';
 
-var
-    base = require('chemical/base');
+        if (html) this.outerHTML += html;
+        this.outerHTML += '</' + this.tag + '>';
 
-var
-    templates = require('../templates');
-
-var
-    todo = require('./todo');
-
-module.exports = function(data) {
-    this.todo = todo;
-    base.call(this, templates['templates/main.html'], data);
-};
-
-},{"../templates":9,"./todo":4,"chemical/base":11}],4:[function(require,module,exports){
-'use strict';
-
-var
-    base = require('chemical/base');
-
-var
-    templates = require('../templates');
-
-module.exports = function(data) {
-    base.call(this, templates['templates/todo.html'], data);
-};
-
-},{"../templates":9,"chemical/base":11}],5:[function(require,module,exports){
-module.exports = {
-    ENTER_KEY: 13,
-    ESCAPE_KEY: 27
-};
-},{}],6:[function(require,module,exports){
-var 
-    noop = require('chemical/noop');
-
-var
-    constants = require('../constants');
-
-var
-    store = require('../stores/todo');
-
-var 
-    transitionEnded = noop;
-
-document.addEventListener('transitionend', function() {
-    transitionEnded();
-    transitionEnded = noop;
-});
-
-document.addEventListener('click', function (event) {
-    var target = event.target;
-
-    // clear completed items
-    if (target.id === 'clear-completed') {
-        store.delete(store.find({
-            status: 'completed'
-        }));
-        return;
-    }
-
-    if (target.id === 'toggle-all') {
-        // get all todos from the store
-        var todos = store.get();
-        var status = target.checked ? 'completed' : '';
-        
-        // set view meta data we want before the store
-        // notifies the view of updates to items
-        store.viewstate.toggleall = target.checked ? 'checked' : '';
-
-        // update all the todos to be completed
-        for (var i = 0; i < todos.length; i++) {
-            store.update(i, {
-                status: status
-            }, false)
-        }
-
-        return;
-    }
-
-    // if the toggle checked
-    if (target.className.indexOf('destroy') > -1) {
-        // update the store
-        var li = target.parentNode.parentNode;
-        store.delete(li.getAttribute('data-index'));
-    }
-    
-    // if the toggle checked
-    if (target.className.indexOf('toggle') > -1) {
-
-        // update the store
-        var li = target.parentNode.parentNode;
-        var status = target.checked ? 'completed' : '';
-        
-        // set the class on the DOM for animated strike through
-        li.className = status;
-        transitionEnded = function(){
-            // update the store with no redraw
-            store.update(li.getAttribute('data-index'), {
-                status: status
-            }, true)
-        }
-    }
-}, false);
-
-window.addEventListener('keypress', function (event) {
-    if (event.keyCode === constants.ENTER_KEY) {
-        if ('new-todo' === event.target.id) {
-            //new todo
-            var todo = event.target.value;
-            store.add({
-                label: todo
-            });
-            
-            event.target.value = '';
-        }
-        return;
-    }
-
-    // focus on the new-todo input box if someone is 
-    // typing a todo
-    document.getElementById('new-todo').focus();
-}, false);
-
-window.addEventListener('keyup', function (event) {
-    if (event.keyCode === constants.ESCAPE_KEY) {
-
-    }
-}, false);
-
-module.exports = {
-    filter: function(query) {
-        if(query) {
-            console.log(query);
-            store.filter(query);
-            store.dispatch();
-        } else {
-            store.filter();
-            store.dispatch();
-        }
-    }
-};
-},{"../constants":5,"../stores/todo":8,"chemical/noop":18}],7:[function(require,module,exports){
-// import helpers
-var router = require('chemical/router');
-
-// render view
-var MainView = require('./views/main');
-var target = document.querySelector('#todoapp');
-
-MainView.renderInto(target);
-
-
-// application routes for todo
-router.intitialize(function (route) {
-    // 404
-});
-
-router.bind('/', function () {
-    MainView.components.footer.setActiveFilter('all');
-});
-
-router.bind('/active', function () {
-    MainView.components.footer.setActiveFilter('active');
-});
-
-router.bind('/completed', function () {
-    MainView.components.footer.setActiveFilter('completed');
-});
-
-
-// controls first view
-if (router.routes[location.pathname]) {
-    router.routes[location.pathname]();
-} else {
-    var hash = location.hash.replace('#', '');
-    router.change(hash);
-}
-},{"./views/main":10,"chemical/router":19}],8:[function(require,module,exports){
-var todos = [];
-var lastquery;
-var filter = void(0);
-
-module.exports = {
-    viewstate: {},
-    filter: function(query) {
-        if(!query){
-            filter = void(0);
-            return;
-        }
-        
-        filter = this.find(query);
-        lastquery = query;
-    },
-    add: function (item) {
-        item.status = '';
-        todos.push(item);
-        
-        if(filter) {
-            this.filter(lastquery);
-        }
-        
-        this.dispatch();
-    },
-    get: function () {
-        if(filter) {
-            return filter;
-        }
-        return todos;
-    },
-    update: function (idx, props, nodraw) {
-        for (var k in props) {
-            todos[idx][k] = props[k];
-        }
-        this.dispatch(nodraw);
-    },
-    dispatch: function (nodraw) {
-        var e = new Event('todo-store-updated');
-        e.nodraw = nodraw;
-        e.store = this;
-        document.dispatchEvent(e);
-    },
-    delete: function (idx) {
-        if (idx instanceof Array) {
-            for (var i = idx.length - 1; i >= 0; i--) {
-               todos.splice(idx[i].index, 1); 
-            }
-        } else {
-            todos.splice(idx, 1);
-        }
-        var e = new Event('todo-store-updated');
-        e.store = this;
-        document.dispatchEvent(e);
-    },
-    find: function (query) {
-        var results = [];
-        for (var i = 0; i < todos.length; i++) {
-            var todo = todos[i];
-            var match = true;
-            for (var k in query) {
-                if(todo[k] !== query[k]) {
-                    match = false;
-                }
-            }
-            if(match) {
-                todo.index = i;
-                results.push(todo);
-            }
-        }
-        return results;
-    }
-}
-},{}],9:[function(require,module,exports){
-this["JST"] = this["JST"] || {};
-
-this["JST"]["templates/footer.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<footer id="footer">\n    <span id="todo-count"><strong>' +
-((__t = ( data.itemsleft )) == null ? '' : __t) +
-'</strong> items left</span>\n    <ul id="filters">\n        <li>\n            <a class="' +
-((__t = ( data.allselected )) == null ? '' : __t) +
-'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
-((__t = ( data.activeselected )) == null ? '' : __t) +
-'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
-((__t = ( data.completedselected )) == null ? '' : __t) +
-'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed">Clear completed</button>\n</footer>';
-return __p
-};
-
-this["JST"]["templates/header.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<header id="header">\n    <h1>todos</h1>\n    <input id="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
-return __p
-};
-
-this["JST"]["templates/main.html"] = function(data) {
-var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
-function print() { __p += __j.call(arguments, '') }
-__p += '<section id="main">\n    <input id="toggle-all" type="checkbox" ' +
-((__t = ( data.toggleall )) == null ? '' : __t) +
-'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list">\n        ';
- if(data.content) { ;
-__p += '\n            ';
- for(var i = 0; i < data.content.length; i++) { ;
-__p += '\n                ';
- var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
-__p += '\n                ' +
-((__t = ( todo.innerHTML )) == null ? '' : __t) +
-'\n            ';
- } ;
-__p += '\n        ';
- } ;
-__p += '\n    </ul>\n</section>';
-return __p
-};
-
-this["JST"]["templates/todo.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<li class="' +
-((__t = ( data.status )) == null ? '' : __t) +
-'" data-index="' +
-((__t = ( data.index )) == null ? '' : __t) +
-'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
-((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
-'>\n        <label>' +
-((__t = ( data.content )) == null ? '' : __t) +
-'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
-return __p
-};
-
-var _ = {escape: escape};
-
-module.exports =this["JST"];
-},{}],10:[function(require,module,exports){
-//import components
-var Container = require('chemical/container');
-
-var Header = require('../components/header'),
-    Main = require('../components/main'),
-    Todo = require('../components/todo'),
-    Footer = require('../components/footer');
-
-var Controller = require('../controllers/todo');
-
-// declare and name components for exporting
-// chemical does NOT do this by default, YOU decide
-// when you need this
-var components = {
-        header:  new Header({}),
-        main: new Main({
-            content: []
-        }),
-        footer: new Footer({
-            itemsleft: 0
-        })
+        return this.outerHTML;
     };
 
-// compose view
-var container = new Container({
-    components:[
-        components.header,
-        components.main,
-        components.footer
-    ]
-});
+    // render the DOM elements for this component
+    this.renderDOM = function () {
+        this.node = document.createElement(this.tag);
 
-document.addEventListener('todo-store-updated', function(event){
-    var store = event.store;
-    var viewstate = store.viewstate;
+        for (var k in this.attributes) {
+            this.node.setAttribute(k, this.attributes[k])
+        };
 
-    // find all todos where status is empty
-    components.footer.itemsleft = store.find({status:''}).length;
-    components.main.toggleall = viewstate.toggleall ? 'checked' : '';
-    components.main.data({content: store.get()});
-}, false);
-
-//we want to export our components
-container.components = components;
-module.exports = container;
-},{"../components/footer":1,"../components/header":2,"../components/main":3,"../components/todo":4,"../controllers/todo":6,"chemical/container":13}],11:[function(require,module,exports){
-'use strict';
-
-var
-    templates = require('./lib/templates/index'),
-    document = require('./lib/utils/document'),
-    observe = require('./lib/utils/observe');
-
-module.exports = function (templatePath, data) {
-
-    this.template = templates[templatePath] || templatePath;
-
-    /* setup template binding */
-    for (var k in data) {
-        this[k] = data[k];
-    }
-
-    var isUpdating = false;
-    this.data = function (_data, nodraw) {
-        var
-            redraw = false;
-
-        isUpdating = true;
-        /* setup template binding */
-        for (var _k in this) {
-            var d = _data[_k];
-            if (d) {
-
-                //if this object is the same
-                //it's contents might be different
-                //so we should request a redraw
-                if (this[_k] === _data[_k]) {
-                    redraw = true;
-                }
-                this[_k] = _data[_k];
-            }
-        }
-        isUpdating = false;
-
-        //prevents the possibility of the observer
-        //firing and requesting a redraw
-        if (redraw && !nodraw) {
-            this.redraw();
-        }
+        this.node.innerHTML = this.renderHTML();
+        return this.node;
     };
 
-    this.setup = function () {
-        var fragment = document.createDocumentFragment();
-        var element = document.createElement('div');
-
-        /* setup the actual fragement to render */
-        this.innerHTML = this.template.call(this, this);
-        element.innerHTML = this.innerHTML;
-
-        this.node = element.children[0] || element.child();
-        fragment.appendChild(this.node);
-
-        this.fragment = fragment;
-    };
-
+    // render this component into a DOM target
     this.renderInto = function (target) {
         this.target = target;
-        this.setup();
-        target.appendChild(this.node);
+        target.appendChild(this.renderDOM());
     };
 
-    this.redraw = function () {
-        if (!isUpdating) {
-            if (this.parent) {
-                this.parent.redraw();
+    // render just the components
+    this.renderComponents = function () {
+        this.innerHTML = '';
+        for (var i = 0, len = this.components.length; i < len; i++) {
+            this.components[i].parent = this;
+            this.components[i].render();
+            if (this.components[i].node.outerHTML) {
+                // the innerHTML for a node is generated by the template
+                this.innerHTML += this.components[i].node.outerHTML;
             } else {
-                var oldnode = this.node;
-                this.setup();
-                this.target.replaceChild(this.node, oldnode);
+                // the node path, we need to render the outer HTML
+                // our selves, we'll use the innerHTML generated from the template
+                this.innerHTML += this.components[i].renderOuterHTML(this.components[i].innerHTML);
             }
-        }
-    }
+        };
+        return this.innerHTML;
+    };
 
-    observe(this, function (change) {
-        if (change.name !== 'innerHTML' && change.name !== 'innerHTML' && change.name !== 'parent' && change.name !== 'node' && change.name !== 'fragment') {
-            /* we need to update this widget alone if no parent */
-            this.redraw();
-        }
-    }.bind(this))
+    // destroy references
+    this.destroy = function () {
+        var target = this.target || this.parent;
+        if (target) target.removeChild(this.node);
+        this.node = void(0);
+        this.innerHTML = void(0);
+        if (this.components) this.destroyComponents();
+    };
 
+    // destroy component references
+    this.destroyComponents = function () {
+        for (var i = 0, len = this.components.length; i < len; i++) {
+            this.components[i].parent = void(0);
+            this.components[i].destroy();
+        };
+    };
+
+    // setup this components lazy style `mixin`
+    this.data(data);
 };
-},{"./lib/templates/index":14,"./lib/utils/document":16,"./lib/utils/observe":17}],12:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 'use strict';
 
-var
-    debounce = require('./lib/utils/debounce'),
-    document = require('./lib/utils/document');
-
-module.exports = function (data) {
-
-    var
-        components = (data && data.components) || [];
-
-    var
-        target;
-
-    this.renderInto = function (_target) {
-        target = target || _target;
-
-        // verify if there is an old node for this block
-        var oldnode = this.node;
-
-        this.setup();
-
-        // if there is a target, render into target
-        // if there is a target, render into target
-        if (target) {
-            if (oldnode && oldnode.parentNode === target) {
-                target.removeChild(oldnode);
-                target.appendChild(this.container);
-            } else {
-                target.appendChild(this.container);
-            }
-        } else {
-            // otherwise render into the parent node
-            // (another block rendering inside a block)
-            /* eslint no-lonely-if: 0 */
-            if (oldnode) {
-                this.parent.node.replaceChild(this.container, oldnode);
-            } else {
-                this.parent.node.appendChild(this.container);
-            }
-        }
-    };
-
-    this.setup = function () {
-
-        // if there is a tag for the container element
-        // otherwise default to div
-        data.tag = data.tag || 'div';
-        data.classes = data.classes || '';
-        data.style = data.style || '';
-
-        // for server side rendering
-        // todo: clean this up
-        this.innerHTML = '<' + data.tag + ' class="' + data.classes + '" style="' + data.style + '">';
-
-        // create a container and a fragement to hold the container
-        var
-            fragment = document.createDocumentFragment(),
-            container = document.createElement(data.tag);
-
-        // add the block's components to the container
-        for (var i = 0, len = components.length; i < len; i++) {
-            components[i].parent = this;
-            components[i].setup();
-            this.innerHTML += components[i].innerHTML;
-            container.appendChild(components[i].fragment);
-        }
-
-        // add the container to a fragment
-        fragment.appendChild(container);
-
-        // give access to the fragement and container
-        this.fragment = fragment;
-        this.container = container;
-
-        this.innerHTML += '</' + data.tag + '>';
-
-        // did the user give a class to give to the container element?
-        if (data.classes && data.classes.length > 0) {
-            this.container.className += data.classes;
-        }
-
-        if (data.style) {
-            this.container.style.cssText = data.style;
-        }
-
-        // set this objects node to container, so that a container can easily contain
-        // a container
-        this.node = container;
-    };
-
-    this._draw = function (component) {
-        component.remove();
-        component.renderInto(target);
-    };
-
-    var draw = debounce(this._draw.bind(this), 80);
-
-    this.redraw = function () {
-        draw(this);
-    };
-
-    this.remove = function () {
-        for (var i = 0, len = components.length; i < len; i++) {
-
-            // if a child is a container, have the container remove
-            // it's own nodes
-            if (components[i].remove) {
-                components[i].remove();
-            }
-
-            components[i].parent.node.removeChild(components[i].node);
-        }
-    };
-};
-},{"./lib/utils/debounce":15,"./lib/utils/document":16}],13:[function(require,module,exports){
-'use strict';
-
-var
-    Block = require('./block');
-
-module.exports = function(data) {
-    return new Block(data);
-};
-
-},{"./block":12}],14:[function(require,module,exports){
-this["JST"] = this["JST"] || {};
-
-this["JST"]["anchor.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<a class="chemical-anchor" href="' +
-((__t = ( data.href )) == null ? '' : __t) +
-'">' +
-((__t = ( data.content )) == null ? '' : __t) +
-'</a>';
-return __p
-};
-
-this["JST"]["button.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<button id="' +
-((__t = ( data.id )) == null ? '' : __t) +
-'" class="chemical-button ' +
-((__t = ( data.block )) == null ? '' : __t) +
-' ' +
-((__t = ( data.brand )) == null ? '' : __t) +
-'">\n    ' +
-((__t = ( data.content )) == null ? '' : __t) +
-'\n</button>';
-return __p
-};
-
-this["JST"]["image.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<img src="' +
-((__t = ( data.src )) == null ? '' : __t) +
-'" class="chemical-image ' +
-((__t = ( data.responsive )) == null ? '' : __t) +
-'">';
-return __p
-};
-
-this["JST"]["input.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<input class="' +
-((__t = ( data.block )) == null ? '' : __t) +
-'" type="' +
-((__t = ( data.type )) == null ? '' : __t) +
-'" placeholder="' +
-((__t = ( data.placeholder )) == null ? '' : __t) +
-'">';
-return __p
-};
-
-this["JST"]["progress.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<div class="chemical-progress">\n    <div style="width: ' +
-((__t = ( data.value )) == null ? '' : __t) +
-'%; height:15px;" class="chemical-progress-fill ' +
-((__t = ( data.brand )) == null ? '' : __t) +
-'"></div>\n</div>\n';
-return __p
-};
-
-this["JST"]["spinner.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<div class="chemical-overlay" style="height:100%;">\n    <div class="chemical-spinner ' +
-((__t = ( data.brand )) == null ? '' : __t) +
-'"></div>\n</div>\n';
-return __p
-};
-
-this["JST"]["table.html"] = function(data) {
-var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
-function print() { __p += __j.call(arguments, '') }
-__p += '<table id="' +
-((__t = ( data.id )) == null ? '' : __t) +
-'" class="chemical-table ' +
-((__t = ( data.striped )) == null ? '' : __t) +
-' ' +
-((__t = ( data.responsive )) == null ? '' : __t) +
-' ' +
-((__t = ( data.brand )) == null ? '' : __t) +
-' ' +
-((__t = ( data.bordered )) == null ? '' : __t) +
-'">\n   ';
- if(data.content) { ;
-__p += '\n        ';
- for(var i = 0; i < data.content.length; i++) { ;
-__p += '\n            <tr>\n            ';
- for(var key in data.content[i]) { ;
-__p += '\n                <th>';
- print(data.content[i][key]) ;
-__p += '</th>\n            ';
- } ;
-__p += '\n            </tr>\n        ';
- } ;
-__p += '\n    ';
- } ;
-__p += '\n</table>\n';
-return __p
-};
-
-this["JST"]["text.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<div class="chemical-text ' +
-((__t = ( data.brand )) == null ? '' : __t) +
-'">' +
-((__t = ( data.content )) == null ? '' : __t) +
-'</div>';
-return __p
-};
-
-var _ = {escape: escape};
-
-module.exports =this["JST"];
-},{}],15:[function(require,module,exports){
-module.exports = function(fn, delay) {
-  var timer = null;
-  var firstRun = true;
-  return function () {
-    var context = this, args = arguments;
-    clearTimeout(timer);
-    timer = setTimeout(function () {
-      fn.apply(context, args);
-    }, delay);
-  };
-}
-},{}],16:[function(require,module,exports){
-/*
-    server side fill, for document
-    module uses, help us build robust server rendered
-    pages from the same views as we use for client side
- */
-
-// server side fill, for document
-// module uses, help us build robust server rendered
-// pages from the same views as we use for client side
-var fill = {
-    createDocumentFragment: function () {
-        if (typeof window === 'object') {
-            return window.document.createDocumentFragment();
-        } else {
-            var children = [];
-            return {
-                appendChild: function (child) {
-                    children.push(child);
-                }
-            }
-        }
-    },
-    createElement: function (type) {
-        if (typeof window === 'object') {
-            return window.document.createElement(type);
-        } else {
-            var children = [];
-            return {
-                children: [
-                  void(0)
-                ],
-                child: function () {
-                    return this.innerHTML;
-                },
-                appendChild: function (child) {
-                    children.push(child);
-                },
-                removeChild: function (child) {},
-                replaceChild: function (child) {},
-                style: {
-                    cssText: ''
-                }
-            }
-        }
-
-    }
-};
-
-module.exports = fill;
-},{}],17:[function(require,module,exports){
-module.exports = function(obj, cb, data) {
-
-     /* leaving this off of node side for right now */
-    if (Object.observe && (!data || (data && !data.test))) {
-        /* when the model is updated, change the values in dom */
-        Object.observe(obj, function (changes) {
-            changes.forEach(function (change) {
-                cb(change);
-            }.bind(this));
-        }.bind(this));
-    }
-
-    if (!Object.observe || (data && data.test)) {
-        console.warn('Observables not supports, please polyfill');
-    }
-}
-},{}],18:[function(require,module,exports){
-module.exports = function(){};
-},{}],19:[function(require,module,exports){
+module.exports = function() {};
+},{}],3:[function(require,module,exports){
 'use strict';
 
 function router() {
@@ -910,4 +230,419 @@ function router() {
 var instance;
 module.exports = instance = instance || router();
 
-},{}]},{},[7]);
+},{}],4:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('chemical/component');
+
+var
+    templates = require('../templates');
+
+var
+    controller = require('../controllers/todo');
+
+module.exports = function (data) {
+    data.allselected = data.allselected ? 'selected' : '';
+    data.activeselected = data.allselected ? 'selected' : '';
+    data.completedselected = data.allselected ? 'selected' : '';
+
+    this.setActiveFilter = function (value) {
+        var map = {
+            active: 'activeselected',
+            all: 'allselected',
+            completed: 'completedselected'
+        };
+
+        if (map[value]) {
+            this.allselected = '';
+            this.activeselected = '';
+            this.completedselected = '';
+            this[map[value]] = 'selected';
+            
+            var filter = (value === 'completed') ? value : '';
+            if(value === 'all') {
+                controller.filter();
+            } else {
+                controller.filter({status: filter});
+            }
+        };
+        
+        
+    };
+
+    data.template = templates['templates/footer.html'];
+    component.call(this, data);
+};
+},{"../controllers/todo":9,"../templates":12,"chemical/component":1}],5:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('chemical/component');
+
+var
+    templates = require('../templates');
+
+module.exports = function(data) {
+    data.template = templates['templates/header.html'];
+    component.call(this, data);
+};
+
+},{"../templates":12,"chemical/component":1}],6:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('chemical/component');
+
+var
+    templates = require('../templates');
+
+var
+    todo = require('./todo');
+
+module.exports = function(data) {
+    this.todo = todo;
+    data.template = templates['templates/main.html'];
+    component.call(this, data);
+};
+
+},{"../templates":12,"./todo":7,"chemical/component":1}],7:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('chemical/component');
+
+var
+    templates = require('../templates');
+
+module.exports = function(data) {
+    data.template = templates['templates/todo.html']; 
+    component.call(this, data);
+};
+
+},{"../templates":12,"chemical/component":1}],8:[function(require,module,exports){
+module.exports = {
+    ENTER_KEY: 13,
+    ESCAPE_KEY: 27
+};
+},{}],9:[function(require,module,exports){
+var noop = require('chemical/noop');
+var constants = require('../constants');
+var store = require('../stores/todo');
+var transitionEnded = noop;
+
+// event handling
+document.addEventListener('transitionend', function() {
+    transitionEnded();
+    transitionEnded = noop;
+});
+
+document.addEventListener('click', function (event) {
+    var target = event.target;
+
+    // clear completed items
+    if (target.id === 'clear-completed') {
+        store.delete(store.find({
+            status: 'completed'
+        }));
+        return;
+    }
+
+    if (target.id === 'toggle-all') {
+        // get all todos from the store
+        var todos = store.get();
+        var status = target.checked ? 'completed' : '';
+        
+        // set view meta data we want before the store
+        // notifies the view of updates to items
+        store.viewstate.toggleall = target.checked ? 'checked' : '';
+
+        // update all the todos to be completed
+        for (var i = 0; i < todos.length; i++) {
+            store.update(i, {
+                status: status
+            }, false)
+        }
+
+        return;
+    }
+
+    // if the toggle checked
+    if (target.className.indexOf('destroy') > -1) {
+        // update the store
+        var li = target.parentNode.parentNode;
+        store.delete(li.getAttribute('data-index'));
+    }
+    
+    // if the toggle checked
+    if (target.className.indexOf('toggle') > -1) {
+
+        // update the store
+        var li = target.parentNode.parentNode;
+        var status = target.checked ? 'completed' : '';
+        
+        // set the class on the DOM for animated strike through
+        li.className = status;
+        transitionEnded = function(){
+            // update the store with no redraw
+            store.update(li.getAttribute('data-index'), {
+                status: status
+            }, true)
+        }
+    }
+}, false);
+
+window.addEventListener('keypress', function (event) {
+    if (event.keyCode === constants.ENTER_KEY) {
+        if ('new-todo' === event.target.id) {
+            //new todo
+            var todo = event.target.value;
+            store.add({
+                label: todo
+            });
+            
+            event.target.value = '';
+        }
+        return;
+    }
+
+    // focus on the new-todo input box if someone is 
+    // typing a todo
+    document.getElementById('new-todo').focus();
+}, false);
+
+window.addEventListener('keyup', function (event) {
+    if (event.keyCode === constants.ESCAPE_KEY) {
+
+    }
+}, false);
+
+
+// exportable api
+module.exports = {
+    filter: function(query) {
+        if(query) {
+            store.filter(query);
+            store.dispatch();
+        } else {
+            store.filter();
+            store.dispatch();
+        }
+    }
+};
+},{"../constants":8,"../stores/todo":11,"chemical/noop":2}],10:[function(require,module,exports){
+// import helpers
+var router = require('chemical/router');
+
+// render view
+var MainView = require('./views/main');
+var target = document.querySelector('#todoapp');
+
+MainView.renderInto(target);
+
+// application routes for todo
+router.intitialize(function (route) {
+    // 404
+});
+
+router.bind('/', function () {
+    MainView.components.footer.setActiveFilter('all');
+});
+
+router.bind('/active', function () {
+    MainView.components.footer.setActiveFilter('active');
+});
+
+router.bind('/completed', function () {
+    MainView.components.footer.setActiveFilter('completed');
+});
+
+
+// controls first view
+if (router.routes[location.pathname]) {
+    router.routes[location.pathname]();
+} else {
+    var hash = location.hash.replace('#', '');
+    router.change(hash);
+}
+},{"./views/main":13,"chemical/router":3}],11:[function(require,module,exports){
+var todos = [];
+var lastquery;
+var filter = void(0);
+
+module.exports = {
+    viewstate: {},
+    filter: function(query) {
+        if(!query){
+            filter = void(0);
+            return;
+        }
+        
+        filter = this.find(query);
+        lastquery = query;
+    },
+    add: function (item) {
+        item.status = '';
+        todos.push(item);
+        
+        if(filter) {
+            this.filter(lastquery);
+        }
+        
+        this.dispatch();
+    },
+    get: function () {
+        if(filter) {
+            return filter;
+        }
+        return todos;
+    },
+    update: function (idx, props, nodraw) {
+        for (var k in props) {
+            todos[idx][k] = props[k];
+        }
+        this.dispatch(nodraw);
+    },
+    dispatch: function (nodraw) {
+        var e = new Event('todo-store-updated');
+        e.nodraw = nodraw;
+        e.store = this;
+        document.dispatchEvent(e);
+    },
+    delete: function (idx) {
+        if (idx instanceof Array) {
+            for (var i = idx.length - 1; i >= 0; i--) {
+               todos.splice(idx[i].index, 1); 
+            }
+        } else {
+            todos.splice(idx, 1);
+        }
+        var e = new Event('todo-store-updated');
+        e.store = this;
+        document.dispatchEvent(e);
+    },
+    find: function (query) {
+        var results = [];
+        for (var i = 0; i < todos.length; i++) {
+            var todo = todos[i];
+            var match = true;
+            for (var k in query) {
+                if(todo[k] !== query[k]) {
+                    match = false;
+                }
+            }
+            if(match) {
+                todo.index = i;
+                results.push(todo);
+            }
+        }
+        return results;
+    }
+}
+},{}],12:[function(require,module,exports){
+this["JST"] = this["JST"] || {};
+
+this["JST"]["templates/footer.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<footer id="footer" class="footer">\n    <span id="todo-count" class="todo-count"><strong>' +
+((__t = ( data.itemsleft )) == null ? '' : __t) +
+'</strong> items left</span>\n    <ul id="filters" class="filters">\n        <li>\n            <a class="' +
+((__t = ( data.allselected )) == null ? '' : __t) +
+'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.activeselected )) == null ? '' : __t) +
+'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.completedselected )) == null ? '' : __t) +
+'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed" class="clear-completed">Clear completed</button>\n</footer>';
+return __p
+};
+
+this["JST"]["templates/header.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<header id="header" class="header">\n    <h1>todos</h1>\n    <input id="new-todo" class="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
+return __p
+};
+
+this["JST"]["templates/main.html"] = function(data) {
+var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
+function print() { __p += __j.call(arguments, '') }
+__p += '<section id="main" class="main">\n    <input id="toggle-all" class="toggle-all" type="checkbox" ' +
+((__t = ( data.toggleall )) == null ? '' : __t) +
+'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" class="todo-list">\n        ';
+ if(data.content) { ;
+__p += '\n            ';
+ for(var i = 0; i < data.content.length; i++) { ;
+__p += '\n                ';
+ var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
+__p += '\n                ' +
+((__t = ( todo.innerHTML )) == null ? '' : __t) +
+'\n            ';
+ } ;
+__p += '\n        ';
+ } ;
+__p += '\n    </ul>\n</section>';
+return __p
+};
+
+this["JST"]["templates/todo.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<li class="' +
+((__t = ( data.status )) == null ? '' : __t) +
+'" data-index="' +
+((__t = ( data.index )) == null ? '' : __t) +
+'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
+((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
+'>\n        <label>' +
+((__t = ( data.content )) == null ? '' : __t) +
+'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
+return __p
+};
+
+var _ = {escape: escape};
+
+module.exports =this["JST"];
+},{}],13:[function(require,module,exports){
+//import components
+var Component = require('chemical/component');
+
+var Header = require('../components/header'),
+    Main = require('../components/main'),
+    Todo = require('../components/todo'),
+    Footer = require('../components/footer');
+
+var Controller = require('../controllers/todo');
+
+// declare and name components for exporting
+// chemical does NOT do this by default, YOU decide
+// when you need this
+var components = {
+        header:  new Header({}),
+        main: new Main({
+            content: []
+        }),
+        footer: new Footer({
+            itemsleft: 0
+        })
+    };
+
+// compose view
+var container = new Component({
+    components: [
+        components.header,
+        components.main,
+        components.footer
+    ]
+});
+
+document.addEventListener('todo-store-updated', function(event){
+    var store = event.store;
+    var viewstate = store.viewstate;
+
+    // find all todos where status is empty
+    components.footer.itemsleft = store.find({status:''}).length;
+    components.main.toggleall = viewstate.toggleall ? 'checked' : '';
+    components.main.data({content: store.get()});
+}, false);
+
+//we want to export our components
+module.exports = container;
+},{"../components/footer":4,"../components/header":5,"../components/main":6,"../components/todo":7,"../controllers/todo":9,"chemical/component":1}]},{},[10]);

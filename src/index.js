@@ -7,7 +7,6 @@ var target = document.querySelector('#todoapp');
 
 MainView.renderInto(target);
 
-
 // application routes for todo
 router.intitialize(function (route) {
     // 404
