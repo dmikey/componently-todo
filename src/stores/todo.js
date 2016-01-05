@@ -1,6 +1,7 @@
 var todos = [];
 var lastquery;
 var filter = void(0);
+var name = 'todos-componently';
 
 module.exports = {
     viewstate: {},
@@ -63,10 +64,21 @@ module.exports = {
         document.dispatchEvent(e);
     },
     save: function() {
-        localStorage.setItem('todos', JSON.stringify(todos));
+        localStorage.setItem(name, JSON.stringify(todos));
     },
     load: function() {
-        todos = JSON.parse(localStorage.getItem('todos'));
+        var json = localStorage.getItem(name);
+        
+        if(!json || json.length === 0) {
+            todos = [];
+            return;
+        }
+        
+        todos = JSON.parse(json);
+        if(!todos instanceof Array){
+            todos = [];
+            return;
+        }
     },
     find: function (query) {
         var results = [];
