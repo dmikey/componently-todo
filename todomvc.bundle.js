@@ -92,10 +92,39 @@ module.exports = {
     ESCAPE_KEY: 27
 };
 },{}],7:[function(require,module,exports){
-var noop = function(){};
+var noop = function () {};
 var constants = require('../constants');
 var store = require('../stores/todo');
 
+// double click to edit a todo
+document.addEventListener('dblclick', function (event) {
+    var target = event.target;
+
+    if (target.className.indexOf('todolabel') > -1) {
+        // show the edit field
+        var li = target.parentNode.parentNode;
+        li.className += ' editing';
+
+        // set focus to the input field
+        var edit = li.querySelector('.edit');
+        edit.focus();
+
+        // remove the edit field when focus lost
+        edit.addEventListener('focusout', function () {
+
+            // remove this listener
+            edit.removeEventListener('focusout');
+            li.className = '';
+
+            target.innerHTML = edit.value;
+            store.update(li.getAttribute('data-index'), {
+                label: edit.value
+            }, false)
+        });
+    }
+});
+
+// click targets
 document.addEventListener('click', function (event) {
     var target = event.target;
 
@@ -105,6 +134,7 @@ document.addEventListener('click', function (event) {
         store.delete(store.find({
             status: 'completed'
         }));
+        
         return;
     }
 
@@ -123,6 +153,8 @@ document.addEventListener('click', function (event) {
                 status: status
             }, false)
         }
+
+        store.dispatch();
 
         return;
     }
@@ -143,13 +175,29 @@ document.addEventListener('click', function (event) {
 
         // set the class on the DOM for animated strike through
         li.className = status;
-        
+
         store.update(li.getAttribute('data-index'), {
             status: status
         }, false);
+
+        store.viewstate.toggleall = false;
+        if (store.length() === store.find({
+                status: 'completed'
+            }).length && store.length() !== 0) {
+
+            store.viewstate.toggleall = true;
+        }
+        
+        var toggleall = document.getElementById('toggle-all');
+        if(store.viewstate.toggleall) {
+            toggleall.setAttribute('checked','checked');
+        } else if(toggleall.hasAttribute('checked')) {
+            toggleall.removeAttribute('checked');
+        }
     }
 }, false);
 
+// look for enter key
 window.addEventListener('keypress', function (event) {
     if (event.keyCode === constants.ENTER_KEY) {
         if ('new-todo' === event.target.id) {
@@ -161,14 +209,16 @@ window.addEventListener('keypress', function (event) {
 
             event.target.value = '';
         }
+        
+        if (event.target.className.indexOf('edit') > -1) {
+            event.target.blur();    
+        }
+        
         return;
     }
-
-    // focus on the new-todo input box if someone is 
-    // typing a todo
-    document.getElementById('new-todo').focus();
 }, false);
 
+// check for escape key
 window.addEventListener('keyup', function (event) {
     if (event.keyCode === constants.ESCAPE_KEY) {
 
@@ -247,31 +297,35 @@ hashChange();
 var todos = [];
 var lastquery;
 var filter = void(0);
+var name = 'todos-componently';
 
 module.exports = {
     viewstate: {},
-    filter: function(query) {
-        if(!query){
+    filter: function (query) {
+        if (!query) {
             filter = void(0);
             return;
         }
-        
+
         filter = this.find(query);
         lastquery = query;
     },
     add: function (item) {
         item.status = '';
         todos.push(item);
-        
-        if(filter) {
+
+        if (filter) {
             this.filter(lastquery);
         }
-        
+
         this.save();
         this.dispatch();
     },
+    length: function () {
+        return todos.length;
+    },
     get: function () {
-        if(filter) {
+        if (filter) {
             return filter;
         }
         return todos;
@@ -280,14 +334,16 @@ module.exports = {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
-        
+
         this.save();
-        
-        if(filter) {
-            filter = this.find(lastquery);    
+
+        if (filter) {
+            filter = this.find(lastquery);
         }
-        
-        this.dispatch();
+
+        if (notify !== false) {
+            this.dispatch();
+        }
     },
     dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
@@ -298,7 +354,7 @@ module.exports = {
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {
-               todos.splice(idx[i].index, 1); 
+                todos.splice(idx[i].index, 1);
             }
         } else {
             todos.splice(idx, 1);
@@ -306,15 +362,26 @@ module.exports = {
         var e = new Event('todo-store-updated');
         e.store = this;
         this.save();
+        
+        if(filter) this.filter(lastquery);
         document.dispatchEvent(e);
     },
-    save: function() {
-        localStorage.setItem('todos', JSON.stringify(todos));
+    save: function () {
+        localStorage.setItem(name, JSON.stringify(todos));
     },
-    load: function() {
-        todos = JSON.parse(localStorage.getItem('todos'));
-        if(!todos instanceof Array) {
+    load: function () {
+        console.log('load');
+        var json = localStorage.getItem(name);
+
+        if (!json || json.length === 0) {
             todos = [];
+            return;
+        }
+
+        todos = JSON.parse(json);
+        if (!todos instanceof Array) {
+            todos = [];
+            return;
         }
     },
     find: function (query) {
@@ -323,11 +390,11 @@ module.exports = {
             var todo = todos[i];
             var match = true;
             for (var k in query) {
-                if(todo[k] !== query[k]) {
+                if (todo[k] !== query[k]) {
                     match = false;
                 }
             }
-            if(match) {
+            if (match) {
                 todo.index = i;
                 results.push(todo);
             }
@@ -372,9 +439,11 @@ this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
 __p += '<div class="view">\n    <input type="checkbox" class="toggle" ' +
 ((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
-'>\n    <label>' +
+'>\n    <label class="todolabel">' +
 ((__t = ( data.content )) == null ? '' : __t) +
-'</label>\n    <button class="destroy"></button>\n</div>\n';
+'</label>\n    <button class="destroy"></button>\n</div>\n<input class="edit" value="' +
+((__t = ( data.content )) == null ? '' : __t) +
+'">\n';
 return __p
 };
 
@@ -419,6 +488,16 @@ document.addEventListener('todo-store-updated', function (event) {
     var store = event.store;
     var viewstate = store.viewstate;
 
+    // toggle all view state
+    viewstate.toggleall = false;
+    if (store.length() === store.find({
+            status: 'completed'
+        }).length && store.length() !== 0) {
+        // all items are checked or unchecked?
+
+        viewstate.toggleall = true;
+    }
+
     // update the view components
     components.footer.itemsleft = store.find({
         status: ''
@@ -432,6 +511,7 @@ document.addEventListener('todo-store-updated', function (event) {
     // ask the container to update it's DOM reference
     container.update();
 
+    document.getElementById('new-todo').focus();
 }, false);
 
 // export reference to the components we need
