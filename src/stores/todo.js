@@ -5,28 +5,31 @@ var name = 'todos-componently';
 
 module.exports = {
     viewstate: {},
-    filter: function(query) {
-        if(!query){
+    filter: function (query) {
+        if (!query) {
             filter = void(0);
             return;
         }
-        
+
         filter = this.find(query);
         lastquery = query;
     },
     add: function (item) {
         item.status = '';
         todos.push(item);
-        
-        if(filter) {
+
+        if (filter) {
             this.filter(lastquery);
         }
-        
+
         this.save();
         this.dispatch();
     },
+    length: function () {
+        return todos.length;
+    },
     get: function () {
-        if(filter) {
+        if (filter) {
             return filter;
         }
         return todos;
@@ -35,14 +38,18 @@ module.exports = {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
-        
+
         this.save();
-        
-        if(filter) {
-            filter = this.find(lastquery);    
+
+        if (filter) {
+            filter = this.find(lastquery);
         }
-        
-        this.dispatch();
+
+        console.log(notify);
+        if (notify !== false) {
+            this.dispatch();
+        }
+
     },
     dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
@@ -53,7 +60,7 @@ module.exports = {
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {
-               todos.splice(idx[i].index, 1); 
+                todos.splice(idx[i].index, 1);
             }
         } else {
             todos.splice(idx, 1);
@@ -63,19 +70,20 @@ module.exports = {
         this.save();
         document.dispatchEvent(e);
     },
-    save: function() {
+    save: function () {
         localStorage.setItem(name, JSON.stringify(todos));
     },
-    load: function() {
+    load: function () {
+        console.log('load');
         var json = localStorage.getItem(name);
-        
-        if(!json || json.length === 0) {
+
+        if (!json || json.length === 0) {
             todos = [];
             return;
         }
-        
+
         todos = JSON.parse(json);
-        if(!todos instanceof Array){
+        if (!todos instanceof Array) {
             todos = [];
             return;
         }
@@ -86,11 +94,11 @@ module.exports = {
             var todo = todos[i];
             var match = true;
             for (var k in query) {
-                if(todo[k] !== query[k]) {
+                if (todo[k] !== query[k]) {
                     match = false;
                 }
             }
-            if(match) {
+            if (match) {
                 todo.index = i;
                 results.push(todo);
             }

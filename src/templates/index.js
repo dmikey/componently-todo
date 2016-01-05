@@ -34,9 +34,11 @@ this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
 __p += '<div class="view">\n    <input type="checkbox" class="toggle" ' +
 ((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
-'>\n    <label>' +
+'>\n    <label class="todolabel">' +
 ((__t = ( data.content )) == null ? '' : __t) +
-'</label>\n    <button class="destroy"></button>\n</div>\n';
+'</label>\n    <button class="destroy"></button>\n</div>\n<input class="edit" value="' +
+((__t = ( data.content )) == null ? '' : __t) +
+'">\n';
 return __p
 };
 
