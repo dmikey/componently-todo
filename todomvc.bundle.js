@@ -313,6 +313,9 @@ module.exports = {
     },
     load: function() {
         todos = JSON.parse(localStorage.getItem('todos'));
+        if(!todos instanceof Array) {
+            todos = [];
+        }
     },
     find: function (query) {
         var results = [];
