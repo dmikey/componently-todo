@@ -45,11 +45,9 @@ module.exports = {
             filter = this.find(lastquery);
         }
 
-        console.log(notify);
         if (notify !== false) {
             this.dispatch();
         }
-
     },
     dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
@@ -68,6 +66,8 @@ module.exports = {
         var e = new Event('todo-store-updated');
         e.store = this;
         this.save();
+        
+        if(filter) this.filter(lastquery);
         document.dispatchEvent(e);
     },
     save: function () {

@@ -134,6 +134,7 @@ document.addEventListener('click', function (event) {
         store.delete(store.find({
             status: 'completed'
         }));
+        
         return;
     }
 
@@ -183,15 +184,15 @@ document.addEventListener('click', function (event) {
         if (store.length() === store.find({
                 status: 'completed'
             }).length && store.length() !== 0) {
-            // all items are checked or unchecked?
-            
+
             store.viewstate.toggleall = true;
         }
         
+        var toggleall = document.getElementById('toggle-all');
         if(store.viewstate.toggleall) {
-            document.getElementById('toggle-all').setAttribute('checked','checked');
-        } else {
-            document.getElementById('toggle-all').removeAttribute('checked');
+            toggleall.setAttribute('checked','checked');
+        } else if(toggleall.hasAttribute('checked')) {
+            toggleall.removeAttribute('checked');
         }
     }
 }, false);
@@ -208,6 +209,11 @@ window.addEventListener('keypress', function (event) {
 
             event.target.value = '';
         }
+        
+        if (event.target.className.indexOf('edit') > -1) {
+            event.target.blur();    
+        }
+        
         return;
     }
 }, false);
@@ -335,11 +341,9 @@ module.exports = {
             filter = this.find(lastquery);
         }
 
-        console.log(notify);
         if (notify !== false) {
             this.dispatch();
         }
-
     },
     dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
@@ -358,6 +362,8 @@ module.exports = {
         var e = new Event('todo-store-updated');
         e.store = this;
         this.save();
+        
+        if(filter) this.filter(lastquery);
         document.dispatchEvent(e);
     },
     save: function () {
@@ -481,6 +487,16 @@ document.addEventListener('todo-store-updated', function (event) {
     // listen for the store to be updated
     var store = event.store;
     var viewstate = store.viewstate;
+
+    // toggle all view state
+    viewstate.toggleall = false;
+    if (store.length() === store.find({
+            status: 'completed'
+        }).length && store.length() !== 0) {
+        // all items are checked or unchecked?
+
+        viewstate.toggleall = true;
+    }
 
     // update the view components
     components.footer.itemsleft = store.find({

@@ -35,6 +35,7 @@ document.addEventListener('todo-store-updated', function (event) {
     var store = event.store;
     var viewstate = store.viewstate;
 
+    // toggle all view state
     viewstate.toggleall = false;
     if (store.length() === store.find({
             status: 'completed'
