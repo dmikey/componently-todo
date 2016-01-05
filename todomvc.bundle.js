@@ -47,7 +47,7 @@ module.exports = function (data) {
     this.template = templates['templates/footer.html'];
     component.call(this, data);
 };
-},{"../controllers/todo":7,"../templates":10,"componently":12}],3:[function(require,module,exports){
+},{"../controllers/todo":7,"../templates":11,"componently":13}],3:[function(require,module,exports){
 'use strict';
 
 var
@@ -60,7 +60,7 @@ module.exports = function (data) {
     this.template = templates['templates/header.html'];
     component.call(this, data);
 };
-},{"../templates":10,"componently":12}],4:[function(require,module,exports){
+},{"../templates":11,"componently":13}],4:[function(require,module,exports){
 'use strict';
 
 var
@@ -73,7 +73,7 @@ module.exports = function (data) {
     this.template = templates['templates/main.html'];
     component.call(this, data);
 };
-},{"../templates":10,"componently":12}],5:[function(require,module,exports){
+},{"../templates":11,"componently":13}],5:[function(require,module,exports){
 'use strict';
 
 var
@@ -86,7 +86,7 @@ module.exports = function (data) {
     this.template = templates['templates/todo.html'];
     component.call(this, data);
 };
-},{"../templates":10,"componently":12}],6:[function(require,module,exports){
+},{"../templates":11,"componently":13}],6:[function(require,module,exports){
 module.exports = {
     ENTER_KEY: 13,
     ESCAPE_KEY: 27
@@ -255,7 +255,7 @@ module.exports = {
         return components;
     }
 };
-},{"../components/todo":5,"../constants":6,"../stores/todo":9}],8:[function(require,module,exports){
+},{"../components/todo":5,"../constants":6,"../stores/todo":10}],8:[function(require,module,exports){
 // import helpers
 var PathParser = require('pathparser');
 var router = new PathParser;
@@ -293,11 +293,24 @@ function hashChange(){
 window.onhashchange = hashChange;
 
 hashChange();
-},{"./stores/todo":9,"./views/main":11,"pathparser":1}],9:[function(require,module,exports){
+},{"./stores/todo":10,"./views/main":12,"pathparser":1}],9:[function(require,module,exports){
+module.exports = function(fn, delay) {
+  var timer = null;
+  var firstRun = true;
+  return function () {
+    var context = this, args = arguments;
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      fn.apply(context, args);
+    }, delay);
+  };
+}
+},{}],10:[function(require,module,exports){
 var todos = [];
 var lastquery;
 var filter = void(0);
 var name = 'todos-componently';
+var debounce = require('../lib/debounce');
 
 module.exports = {
     viewstate: {},
@@ -345,12 +358,12 @@ module.exports = {
             this.dispatch();
         }
     },
-    dispatch: function (nodraw) {
+    dispatch: debounce(function (nodraw) {
         var e = new Event('todo-store-updated');
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
-    },
+    }, 50),
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {
@@ -370,7 +383,6 @@ module.exports = {
         localStorage.setItem(name, JSON.stringify(todos));
     },
     load: function () {
-        console.log('load');
         var json = localStorage.getItem(name);
 
         if (!json || json.length === 0) {
@@ -402,7 +414,7 @@ module.exports = {
         return results;
     }
 }
-},{}],10:[function(require,module,exports){
+},{"../lib/debounce":9}],11:[function(require,module,exports){
 this["JST"] = this["JST"] || {};
 
 this["JST"]["templates/footer.html"] = function(data) {
@@ -450,7 +462,7 @@ return __p
 var _ = {escape: escape};
 
 module.exports =this["JST"];
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 //import components
 var Component = require('componently');
 
@@ -519,7 +531,7 @@ container.$ = components;
 
 // we want to export our components
 module.exports = container;
-},{"../components/footer":2,"../components/header":3,"../components/main":4,"../components/todo":5,"../controllers/todo":7,"componently":12}],12:[function(require,module,exports){
+},{"../components/footer":2,"../components/header":3,"../components/main":4,"../components/todo":5,"../controllers/todo":7,"componently":13}],13:[function(require,module,exports){
 module.exports = function (data) {
 
     var document = typeof (window) === 'object' ? window.document : {

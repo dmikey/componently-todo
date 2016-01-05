@@ -2,6 +2,7 @@ var todos = [];
 var lastquery;
 var filter = void(0);
 var name = 'todos-componently';
+var debounce = require('../lib/debounce');
 
 module.exports = {
     viewstate: {},
@@ -49,12 +50,12 @@ module.exports = {
             this.dispatch();
         }
     },
-    dispatch: function (nodraw) {
+    dispatch: debounce(function (nodraw) {
         var e = new Event('todo-store-updated');
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
-    },
+    }, 60),
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {
@@ -74,7 +75,6 @@ module.exports = {
         localStorage.setItem(name, JSON.stringify(todos));
     },
     load: function () {
-        console.log('load');
         var json = localStorage.getItem(name);
 
         if (!json || json.length === 0) {
