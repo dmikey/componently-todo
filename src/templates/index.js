@@ -21,37 +21,22 @@ return __p
 };
 
 this["JST"]["templates/main.html"] = function(data) {
-var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
-function print() { __p += __j.call(arguments, '') }
+var __t, __p = '', __e = _.escape;
 __p += '<section id="main" class="main">\n    <input id="toggle-all" class="toggle-all" type="checkbox" ' +
 ((__t = ( data.toggleall )) == null ? '' : __t) +
-'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" class="todo-list">\n        ';
- if(data.content) { ;
-__p += '\n            ';
- for(var i = 0; i < data.content.length; i++) { ;
-__p += '\n                ';
- var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
-__p += '\n                ' +
-((__t = ( todo.innerHTML )) == null ? '' : __t) +
-'\n            ';
- } ;
-__p += '\n        ';
- } ;
-__p += '\n    </ul>\n</section>';
+'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" class="todo-list">\n        <!-- render components here -->\n        ' +
+((__t = ( data.innerHTML )) == null ? '' : __t) +
+'\n    </ul>\n</section>';
 return __p
 };
 
 this["JST"]["templates/todo.html"] = function(data) {
 var __t, __p = '', __e = _.escape;
-__p += '<li class="' +
-((__t = ( data.status )) == null ? '' : __t) +
-'" data-index="' +
-((__t = ( data.index )) == null ? '' : __t) +
-'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
+__p += '<div class="view">\n    <input type="checkbox" class="toggle" ' +
 ((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
-'>\n        <label>' +
+'>\n    <label>' +
 ((__t = ( data.content )) == null ? '' : __t) +
-'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
+'</label>\n    <button class="destroy"></button>\n</div>\n';
 return __p
 };
 

@@ -21,6 +21,7 @@ module.exports = {
             this.filter(lastquery);
         }
         
+        this.save();
         this.dispatch();
     },
     get: function () {
@@ -29,11 +30,18 @@ module.exports = {
         }
         return todos;
     },
-    update: function (idx, props, nodraw) {
+    update: function (idx, props, notify) {
         for (var k in props) {
             todos[idx][k] = props[k];
         }
-        this.dispatch(nodraw);
+        
+        this.save();
+        
+        if(filter) {
+            filter = this.find(lastquery);    
+        }
+        
+        this.dispatch();
     },
     dispatch: function (nodraw) {
         var e = new Event('todo-store-updated');
@@ -51,7 +59,14 @@ module.exports = {
         }
         var e = new Event('todo-store-updated');
         e.store = this;
+        this.save();
         document.dispatchEvent(e);
+    },
+    save: function() {
+        localStorage.setItem('todos', JSON.stringify(todos));
+    },
+    load: function() {
+        todos = JSON.parse(localStorage.getItem('todos'));
     },
     find: function (query) {
         var results = [];

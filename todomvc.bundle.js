@@ -1,4 +1,442 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/* Copyright (c) 2014 Dan Stillman - MIT License - https://github.com/dstillman/pathparser.js */
+!function(r){"function"==typeof define&&define.amd?define(r):"object"==typeof exports?module.exports=r():~String(this).indexOf("BackstagePass")?(EXPORTED_SYMBOLS=["PathParser"],PathParser=r()):PathParser=r()}(function(){"use strict";var r=function(r){this.rules=[],this.params=r};return r.prototype=function(){function r(r,t,e){for(var n={},s={},a=0;a<r.parts.length;a++){var i=r.parts[a],u=t[a];if(void 0!==u){if(":"==i.charAt(0)){n[i.substr(1)]=u;continue}if(i!==u)return!1}else{if(":"!=i.charAt(0))return!1;s[i.substr(1)]=!0}}for(var a=0;a<e.length;a++){var l=e[a].split("=",2),f=l[0];2!=l.length||n[f]||s[f]||(n[f]=l[1])}return n}return{add:function(r,t){this.rules.push({parts:r.replace(/^\//,"").split("/"),handler:t})},run:function(t){t.length&&(t=t.replace(/\/+/g,"/").replace(/^\/|\/($|\?)/,"").replace(/#.*$/,""));for(var e=t.split("?",2),n=e[0].split("/",50),s=e[1]?e[1].split("&",50):[],a=0;a<this.rules.length;a++){var i=this.rules[a],u=r(i,n,s);if(u){if(u.url=t,this.params)for(var l in u)this.params[l]=u[l];return i.handler&&i.handler.call(u),!0}}return!1}}}(),r});
+},{}],2:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('componently');
+
+var
+    templates = require('../templates');
+
+var
+    controller = require('../controllers/todo');
+
+module.exports = function (data) {
+    this.allselected = data.allselected ? 'selected' : '';
+    this.activeselected = data.allselected ? 'selected' : '';
+    this.completedselected = data.allselected ? 'selected' : '';
+
+    this.setActiveFilter = function (value) {
+        var map = {
+            active: 'activeselected',
+            all: 'allselected',
+            completed: 'completedselected'
+        };
+
+        if (map[value]) {
+            this.allselected = '';
+            this.activeselected = '';
+            this.completedselected = '';
+            this[map[value]] = 'selected';
+
+            var filter = (value === 'completed') ? value : '';
+            if (value === 'all') {
+                controller.filter();
+            } else {
+                controller.filter({
+                    status: filter
+                });
+            }
+        };
+
+
+    };
+
+    this.template = templates['templates/footer.html'];
+    component.call(this, data);
+};
+},{"../controllers/todo":7,"../templates":10,"componently":12}],3:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('componently');
+
+var
+    templates = require('../templates');
+
+module.exports = function (data) {
+    this.template = templates['templates/header.html'];
+    component.call(this, data);
+};
+},{"../templates":10,"componently":12}],4:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('componently');
+
+var
+    templates = require('../templates');
+
+module.exports = function (data) {
+    this.template = templates['templates/main.html'];
+    component.call(this, data);
+};
+},{"../templates":10,"componently":12}],5:[function(require,module,exports){
+'use strict';
+
+var
+    component = require('componently');
+
+var
+    templates = require('../templates');
+
+module.exports = function (data) {
+    this.template = templates['templates/todo.html'];
+    component.call(this, data);
+};
+},{"../templates":10,"componently":12}],6:[function(require,module,exports){
+module.exports = {
+    ENTER_KEY: 13,
+    ESCAPE_KEY: 27
+};
+},{}],7:[function(require,module,exports){
+var noop = function(){};
+var constants = require('../constants');
+var store = require('../stores/todo');
+
+document.addEventListener('click', function (event) {
+    var target = event.target;
+
+    // clear completed items
+    if (target.id === 'clear-completed') {
+
+        store.delete(store.find({
+            status: 'completed'
+        }));
+        return;
+    }
+
+    if (target.id === 'toggle-all') {
+        // get all todos from the store
+        var todos = store.get();
+        var status = target.checked ? 'completed' : '';
+
+        // set view meta data we want before the store
+        // notifies the view of updates to items
+        store.viewstate.toggleall = target.checked ? 'checked' : '';
+
+        // update all the todos to be completed
+        for (var i = 0; i < todos.length; i++) {
+            store.update(i, {
+                status: status
+            }, false)
+        }
+
+        return;
+    }
+
+    // if the toggle checked
+    if (target.className.indexOf('destroy') > -1) {
+        // update the store
+        var li = target.parentNode.parentNode;
+        store.delete(li.getAttribute('data-index'));
+    }
+
+    // if the toggle checked
+    if (target.className.indexOf('toggle') > -1) {
+
+        // update the store
+        var li = target.parentNode.parentNode;
+        var status = target.checked ? 'completed' : '';
+
+        // set the class on the DOM for animated strike through
+        li.className = status;
+        
+        store.update(li.getAttribute('data-index'), {
+            status: status
+        }, false);
+    }
+}, false);
+
+window.addEventListener('keypress', function (event) {
+    if (event.keyCode === constants.ENTER_KEY) {
+        if ('new-todo' === event.target.id) {
+            //new todo
+            var todo = event.target.value;
+            store.add({
+                label: todo
+            });
+
+            event.target.value = '';
+        }
+        return;
+    }
+
+    // focus on the new-todo input box if someone is 
+    // typing a todo
+    document.getElementById('new-todo').focus();
+}, false);
+
+window.addEventListener('keyup', function (event) {
+    if (event.keyCode === constants.ESCAPE_KEY) {
+
+    }
+}, false);
+
+// exportable api
+module.exports = {
+    filter: function (query) {
+        if (query) {
+            store.filter(query);
+            store.dispatch();
+        } else {
+            store.filter();
+            store.dispatch();
+        }
+    },
+    translateTodos: function (todos) {
+        // creates an array of todos from the store
+        var ToDo = require('../components/todo');
+        var components = [];
+        for (var i = 0; i < todos.length; i++) {
+            // create a todo item
+            components.push(new ToDo({
+                tag: 'li',
+                attributes: {
+                    'class': todos[i].status,
+                    'data-index': todos[i].index
+                },
+                status: todos[i].status,
+                content: todos[i].label
+            }));
+        }
+        return components;
+    }
+};
+},{"../components/todo":5,"../constants":6,"../stores/todo":9}],8:[function(require,module,exports){
+// import helpers
+var PathParser = require('pathparser');
+var router = new PathParser;
+
+// load the stored todos
+
+var store = require('./stores/todo');
+store.load();
+
+// render view
+var MainView = require('./views/main');
+var target = document.querySelector('#todoapp');
+MainView.renderInto(target);
+
+router.add('/', function () {
+    // set the filter which will also call the 
+    // store dispatch
+    MainView.$.footer.setActiveFilter('all');
+});
+
+router.add('/active', function () {
+    MainView.$.footer.setActiveFilter('active');
+});
+
+router.add('/completed', function () {
+    MainView.$.footer.setActiveFilter('completed');
+});
+
+function hashChange(){
+    var hash = location.hash.replace('#', '');
+    if (hash.length === 0) hash = '/';
+    router.run(hash); 
+}
+
+window.onhashchange = hashChange;
+
+hashChange();
+},{"./stores/todo":9,"./views/main":11,"pathparser":1}],9:[function(require,module,exports){
+var todos = [];
+var lastquery;
+var filter = void(0);
+
+module.exports = {
+    viewstate: {},
+    filter: function(query) {
+        if(!query){
+            filter = void(0);
+            return;
+        }
+        
+        filter = this.find(query);
+        lastquery = query;
+    },
+    add: function (item) {
+        item.status = '';
+        todos.push(item);
+        
+        if(filter) {
+            this.filter(lastquery);
+        }
+        
+        this.save();
+        this.dispatch();
+    },
+    get: function () {
+        if(filter) {
+            return filter;
+        }
+        return todos;
+    },
+    update: function (idx, props, notify) {
+        for (var k in props) {
+            todos[idx][k] = props[k];
+        }
+        
+        this.save();
+        
+        if(filter) {
+            filter = this.find(lastquery);    
+        }
+        
+        this.dispatch();
+    },
+    dispatch: function (nodraw) {
+        var e = new Event('todo-store-updated');
+        e.nodraw = nodraw;
+        e.store = this;
+        document.dispatchEvent(e);
+    },
+    delete: function (idx) {
+        if (idx instanceof Array) {
+            for (var i = idx.length - 1; i >= 0; i--) {
+               todos.splice(idx[i].index, 1); 
+            }
+        } else {
+            todos.splice(idx, 1);
+        }
+        var e = new Event('todo-store-updated');
+        e.store = this;
+        this.save();
+        document.dispatchEvent(e);
+    },
+    save: function() {
+        localStorage.setItem('todos', JSON.stringify(todos));
+    },
+    load: function() {
+        todos = JSON.parse(localStorage.getItem('todos'));
+    },
+    find: function (query) {
+        var results = [];
+        for (var i = 0; i < todos.length; i++) {
+            var todo = todos[i];
+            var match = true;
+            for (var k in query) {
+                if(todo[k] !== query[k]) {
+                    match = false;
+                }
+            }
+            if(match) {
+                todo.index = i;
+                results.push(todo);
+            }
+        }
+        return results;
+    }
+}
+},{}],10:[function(require,module,exports){
+this["JST"] = this["JST"] || {};
+
+this["JST"]["templates/footer.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<footer id="footer" class="footer">\n    <span id="todo-count" class="todo-count"><strong>' +
+((__t = ( data.itemsleft )) == null ? '' : __t) +
+'</strong> items left</span>\n    <ul id="filters" class="filters">\n        <li>\n            <a class="' +
+((__t = ( data.allselected )) == null ? '' : __t) +
+'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.activeselected )) == null ? '' : __t) +
+'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
+((__t = ( data.completedselected )) == null ? '' : __t) +
+'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed" class="clear-completed">Clear completed</button>\n</footer>';
+return __p
+};
+
+this["JST"]["templates/header.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<header id="header" class="header">\n    <h1>todos</h1>\n    <input id="new-todo" class="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
+return __p
+};
+
+this["JST"]["templates/main.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<section id="main" class="main">\n    <input id="toggle-all" class="toggle-all" type="checkbox" ' +
+((__t = ( data.toggleall )) == null ? '' : __t) +
+'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" class="todo-list">\n        <!-- render components here -->\n        ' +
+((__t = ( data.innerHTML )) == null ? '' : __t) +
+'\n    </ul>\n</section>';
+return __p
+};
+
+this["JST"]["templates/todo.html"] = function(data) {
+var __t, __p = '', __e = _.escape;
+__p += '<div class="view">\n    <input type="checkbox" class="toggle" ' +
+((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
+'>\n    <label>' +
+((__t = ( data.content )) == null ? '' : __t) +
+'</label>\n    <button class="destroy"></button>\n</div>\n';
+return __p
+};
+
+var _ = {escape: escape};
+
+module.exports =this["JST"];
+},{}],11:[function(require,module,exports){
+//import components
+var Component = require('componently');
+
+var Header = require('../components/header'),
+    Main = require('../components/main'),
+    Todo = require('../components/todo'),
+    Footer = require('../components/footer');
+
+var Controller = require('../controllers/todo');
+
+// declare and name components for exporting
+// chemical does NOT do this by default, YOU decide
+// when you need this
+var components = {
+    header: new Header({}),
+    main: new Main({
+        content: []
+    }),
+    footer: new Footer({
+        itemsleft: 0
+    })
+};
+
+// compose view
+var container = new Component({
+    components: [
+        components.header,
+        components.main,
+        components.footer
+    ]
+});
+
+document.addEventListener('todo-store-updated', function (event) {
+    // listen for the store to be updated
+    var store = event.store;
+    var viewstate = store.viewstate;
+
+    // update the view components
+    components.footer.itemsleft = store.find({
+        status: ''
+    }).length;
+
+    components.main.update({
+        components: Controller.translateTodos(store.get()),
+        toggleall: viewstate.toggleall ? 'checked' : ''
+    });
+
+    // ask the container to update it's DOM reference
+    container.update();
+
+}, false);
+
+// export reference to the components we need
+container.$ = components;
+
+// we want to export our components
+module.exports = container;
+},{"../components/footer":2,"../components/header":3,"../components/main":4,"../components/todo":5,"../controllers/todo":7,"componently":12}],12:[function(require,module,exports){
 module.exports = function (data) {
 
     var document = typeof (window) === 'object' ? window.document : {
@@ -11,7 +449,7 @@ module.exports = function (data) {
 
     // merge a passed object, to this
     this.data = function (data) {
-        this.oldnode = this.node;
+
         for (var k in data) {
             this[k] = data[k];
         };
@@ -23,20 +461,31 @@ module.exports = function (data) {
 
     // update the components UI
     this.update = function (data) {
+        this.oldnode = this.node;
+
         if (data) this.data(data);
 
         this.render();
-        var target = this.target || this.parent;
+        var target = this.target;
 
         if (target) {
             target.replaceChild(this.node, this.oldnode);
         }
+
+        // run an after update hook if developer
+        // needs to know when UI component is in the DOM
+        if (this.afterUpdate) this.afterUpdate();
     }
 
     // setup this component
     this.render = function () {
         this.renderDOM();
         this.renderOuterHTML(this.innerHTML);
+
+        // if a transform is present, allow the dev
+        // to modify the outerHTML
+        if(this.transform) this.outerHTML = this.transform();
+
         return this;
     };
 
@@ -136,513 +585,4 @@ module.exports = function (data) {
     // setup this components lazy style `mixin`
     this.data(data);
 };
-},{}],2:[function(require,module,exports){
-'use strict';
-
-module.exports = function() {};
-},{}],3:[function(require,module,exports){
-'use strict';
-
-function router() {
-
-    var routes = [];
-    var unknown;
-
-	/*
-		@define: intializes the router class
-		@requires: "func": {
-			type: function,
-			parameters: function(route),
-			define: "this is used for when a hash is not found"
-		}
-		@example:
-		var router = require('./router')
-        router.intitialize(function(route) {
-			console.log(route + 'not found');
-		});
-	*/
-    var intitialize = function(func) {
-        unknown = func;
-        window.onhashchange = hashchange;
-        hashchange();
-    };
-
-	/*
-		@define: is called when a hash change occurs
-		@requires: none
-		@returns: none
-	*/
-    var hashchange = function() {
-        var hash = window.location.hash.replace('#', '');
-        if (routes[hash]) {
-            routes[hash]();
-        } else {
-            unknown(hash);
-        }
-    };
-
-	/*
-		@define: binds hash events to global window.routes
-		@requires: "hash": {type: String}
-		@requires: "func": {type: Function}
-		@example:
-		var router = require('./router');
-		router.bind('hello', function() {
-			alert('hellow world');
-		});
-	*/
-    var bind = function(hash, func) {
-        if (typeof func === 'function') {
-            routes[hash] = func;
-        } else {
-            throw new TypeError('func needs to be a function');
-        }
-    };
-
-	/*
-		@define: changes the hash of the window object
-		@requires: "hash": {type: String}
-		@example:
-		var router = require('./router');
-		router.change('hello');
-	*/
-    var change = function(hash) {
-		/*
-			This could happen if the user is already on a hash event
-			and restarts the app
-		 */
-        if (location.href.substring(location.href.indexOf('#')) === '#' + hash) {
-            hashchange();
-        } else {
-            location.href = '#' + hash;
-        }
-    };
-
-    return {
-        bind: bind,
-        change: change,
-        routes: routes,
-        intitialize: intitialize
-    };
-
-}
-
-var instance;
-module.exports = instance = instance || router();
-
-},{}],4:[function(require,module,exports){
-'use strict';
-
-var
-    component = require('chemical/component');
-
-var
-    templates = require('../templates');
-
-var
-    controller = require('../controllers/todo');
-
-module.exports = function (data) {
-    data.allselected = data.allselected ? 'selected' : '';
-    data.activeselected = data.allselected ? 'selected' : '';
-    data.completedselected = data.allselected ? 'selected' : '';
-
-    this.setActiveFilter = function (value) {
-        var map = {
-            active: 'activeselected',
-            all: 'allselected',
-            completed: 'completedselected'
-        };
-
-        if (map[value]) {
-            this.allselected = '';
-            this.activeselected = '';
-            this.completedselected = '';
-            this[map[value]] = 'selected';
-            
-            var filter = (value === 'completed') ? value : '';
-            if(value === 'all') {
-                controller.filter();
-            } else {
-                controller.filter({status: filter});
-            }
-        };
-        
-        
-    };
-
-    data.template = templates['templates/footer.html'];
-    component.call(this, data);
-};
-},{"../controllers/todo":9,"../templates":12,"chemical/component":1}],5:[function(require,module,exports){
-'use strict';
-
-var
-    component = require('chemical/component');
-
-var
-    templates = require('../templates');
-
-module.exports = function(data) {
-    data.template = templates['templates/header.html'];
-    component.call(this, data);
-};
-
-},{"../templates":12,"chemical/component":1}],6:[function(require,module,exports){
-'use strict';
-
-var
-    component = require('chemical/component');
-
-var
-    templates = require('../templates');
-
-var
-    todo = require('./todo');
-
-module.exports = function(data) {
-    this.todo = todo;
-    data.template = templates['templates/main.html'];
-    component.call(this, data);
-};
-
-},{"../templates":12,"./todo":7,"chemical/component":1}],7:[function(require,module,exports){
-'use strict';
-
-var
-    component = require('chemical/component');
-
-var
-    templates = require('../templates');
-
-module.exports = function(data) {
-    data.template = templates['templates/todo.html']; 
-    component.call(this, data);
-};
-
-},{"../templates":12,"chemical/component":1}],8:[function(require,module,exports){
-module.exports = {
-    ENTER_KEY: 13,
-    ESCAPE_KEY: 27
-};
-},{}],9:[function(require,module,exports){
-var noop = require('chemical/noop');
-var constants = require('../constants');
-var store = require('../stores/todo');
-var transitionEnded = noop;
-
-// event handling
-document.addEventListener('transitionend', function() {
-    transitionEnded();
-    transitionEnded = noop;
-});
-
-document.addEventListener('click', function (event) {
-    var target = event.target;
-
-    // clear completed items
-    if (target.id === 'clear-completed') {
-        store.delete(store.find({
-            status: 'completed'
-        }));
-        return;
-    }
-
-    if (target.id === 'toggle-all') {
-        // get all todos from the store
-        var todos = store.get();
-        var status = target.checked ? 'completed' : '';
-        
-        // set view meta data we want before the store
-        // notifies the view of updates to items
-        store.viewstate.toggleall = target.checked ? 'checked' : '';
-
-        // update all the todos to be completed
-        for (var i = 0; i < todos.length; i++) {
-            store.update(i, {
-                status: status
-            }, false)
-        }
-
-        return;
-    }
-
-    // if the toggle checked
-    if (target.className.indexOf('destroy') > -1) {
-        // update the store
-        var li = target.parentNode.parentNode;
-        store.delete(li.getAttribute('data-index'));
-    }
-    
-    // if the toggle checked
-    if (target.className.indexOf('toggle') > -1) {
-
-        // update the store
-        var li = target.parentNode.parentNode;
-        var status = target.checked ? 'completed' : '';
-        
-        // set the class on the DOM for animated strike through
-        li.className = status;
-        transitionEnded = function(){
-            // update the store with no redraw
-            store.update(li.getAttribute('data-index'), {
-                status: status
-            }, true)
-        }
-    }
-}, false);
-
-window.addEventListener('keypress', function (event) {
-    if (event.keyCode === constants.ENTER_KEY) {
-        if ('new-todo' === event.target.id) {
-            //new todo
-            var todo = event.target.value;
-            store.add({
-                label: todo
-            });
-            
-            event.target.value = '';
-        }
-        return;
-    }
-
-    // focus on the new-todo input box if someone is 
-    // typing a todo
-    document.getElementById('new-todo').focus();
-}, false);
-
-window.addEventListener('keyup', function (event) {
-    if (event.keyCode === constants.ESCAPE_KEY) {
-
-    }
-}, false);
-
-
-// exportable api
-module.exports = {
-    filter: function(query) {
-        if(query) {
-            store.filter(query);
-            store.dispatch();
-        } else {
-            store.filter();
-            store.dispatch();
-        }
-    }
-};
-},{"../constants":8,"../stores/todo":11,"chemical/noop":2}],10:[function(require,module,exports){
-// import helpers
-var router = require('chemical/router');
-
-// render view
-var MainView = require('./views/main');
-var target = document.querySelector('#todoapp');
-
-MainView.renderInto(target);
-
-// application routes for todo
-router.intitialize(function (route) {
-    // 404
-});
-
-router.bind('/', function () {
-    MainView.components.footer.setActiveFilter('all');
-});
-
-router.bind('/active', function () {
-    MainView.components.footer.setActiveFilter('active');
-});
-
-router.bind('/completed', function () {
-    MainView.components.footer.setActiveFilter('completed');
-});
-
-
-// controls first view
-if (router.routes[location.pathname]) {
-    router.routes[location.pathname]();
-} else {
-    var hash = location.hash.replace('#', '');
-    router.change(hash);
-}
-},{"./views/main":13,"chemical/router":3}],11:[function(require,module,exports){
-var todos = [];
-var lastquery;
-var filter = void(0);
-
-module.exports = {
-    viewstate: {},
-    filter: function(query) {
-        if(!query){
-            filter = void(0);
-            return;
-        }
-        
-        filter = this.find(query);
-        lastquery = query;
-    },
-    add: function (item) {
-        item.status = '';
-        todos.push(item);
-        
-        if(filter) {
-            this.filter(lastquery);
-        }
-        
-        this.dispatch();
-    },
-    get: function () {
-        if(filter) {
-            return filter;
-        }
-        return todos;
-    },
-    update: function (idx, props, nodraw) {
-        for (var k in props) {
-            todos[idx][k] = props[k];
-        }
-        this.dispatch(nodraw);
-    },
-    dispatch: function (nodraw) {
-        var e = new Event('todo-store-updated');
-        e.nodraw = nodraw;
-        e.store = this;
-        document.dispatchEvent(e);
-    },
-    delete: function (idx) {
-        if (idx instanceof Array) {
-            for (var i = idx.length - 1; i >= 0; i--) {
-               todos.splice(idx[i].index, 1); 
-            }
-        } else {
-            todos.splice(idx, 1);
-        }
-        var e = new Event('todo-store-updated');
-        e.store = this;
-        document.dispatchEvent(e);
-    },
-    find: function (query) {
-        var results = [];
-        for (var i = 0; i < todos.length; i++) {
-            var todo = todos[i];
-            var match = true;
-            for (var k in query) {
-                if(todo[k] !== query[k]) {
-                    match = false;
-                }
-            }
-            if(match) {
-                todo.index = i;
-                results.push(todo);
-            }
-        }
-        return results;
-    }
-}
-},{}],12:[function(require,module,exports){
-this["JST"] = this["JST"] || {};
-
-this["JST"]["templates/footer.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<footer id="footer" class="footer">\n    <span id="todo-count" class="todo-count"><strong>' +
-((__t = ( data.itemsleft )) == null ? '' : __t) +
-'</strong> items left</span>\n    <ul id="filters" class="filters">\n        <li>\n            <a class="' +
-((__t = ( data.allselected )) == null ? '' : __t) +
-'" href="#/">All</a>\n        </li>\n        <li>\n            <a class="' +
-((__t = ( data.activeselected )) == null ? '' : __t) +
-'"  href="#/active">Active</a>\n        </li>\n        <li>\n            <a class="' +
-((__t = ( data.completedselected )) == null ? '' : __t) +
-'" href="#/completed">Completed</a>\n        </li>\n    </ul>\n    <button id="clear-completed" class="clear-completed">Clear completed</button>\n</footer>';
-return __p
-};
-
-this["JST"]["templates/header.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<header id="header" class="header">\n    <h1>todos</h1>\n    <input id="new-todo" class="new-todo" placeholder="What needs to be done?" autofocus>\n</header>';
-return __p
-};
-
-this["JST"]["templates/main.html"] = function(data) {
-var __t, __p = '', __e = _.escape, __j = Array.prototype.join;
-function print() { __p += __j.call(arguments, '') }
-__p += '<section id="main" class="main">\n    <input id="toggle-all" class="toggle-all" type="checkbox" ' +
-((__t = ( data.toggleall )) == null ? '' : __t) +
-'>\n    <label for="toggle-all">Mark all as complete</label>\n    <ul id="todo-list" class="todo-list">\n        ';
- if(data.content) { ;
-__p += '\n            ';
- for(var i = 0; i < data.content.length; i++) { ;
-__p += '\n                ';
- var todo = new this.todo({ index: i, content: data.content[i].label, status: data.content[i].status});  todo.setup();;
-__p += '\n                ' +
-((__t = ( todo.innerHTML )) == null ? '' : __t) +
-'\n            ';
- } ;
-__p += '\n        ';
- } ;
-__p += '\n    </ul>\n</section>';
-return __p
-};
-
-this["JST"]["templates/todo.html"] = function(data) {
-var __t, __p = '', __e = _.escape;
-__p += '<li class="' +
-((__t = ( data.status )) == null ? '' : __t) +
-'" data-index="' +
-((__t = ( data.index )) == null ? '' : __t) +
-'">\n    <div class="view">\n        <input type="checkbox" class="toggle" ' +
-((__t = ( data.status === 'completed' ? 'checked' : '' )) == null ? '' : __t) +
-'>\n        <label>' +
-((__t = ( data.content )) == null ? '' : __t) +
-'</label>\n        <button class="destroy"></button>\n    </div>\n</li>';
-return __p
-};
-
-var _ = {escape: escape};
-
-module.exports =this["JST"];
-},{}],13:[function(require,module,exports){
-//import components
-var Component = require('chemical/component');
-
-var Header = require('../components/header'),
-    Main = require('../components/main'),
-    Todo = require('../components/todo'),
-    Footer = require('../components/footer');
-
-var Controller = require('../controllers/todo');
-
-// declare and name components for exporting
-// chemical does NOT do this by default, YOU decide
-// when you need this
-var components = {
-        header:  new Header({}),
-        main: new Main({
-            content: []
-        }),
-        footer: new Footer({
-            itemsleft: 0
-        })
-    };
-
-// compose view
-var container = new Component({
-    components: [
-        components.header,
-        components.main,
-        components.footer
-    ]
-});
-
-document.addEventListener('todo-store-updated', function(event){
-    var store = event.store;
-    var viewstate = store.viewstate;
-
-    // find all todos where status is empty
-    components.footer.itemsleft = store.find({status:''}).length;
-    components.main.toggleall = viewstate.toggleall ? 'checked' : '';
-    components.main.data({content: store.get()});
-}, false);
-
-//we want to export our components
-module.exports = container;
-},{"../components/footer":4,"../components/header":5,"../components/main":6,"../components/todo":7,"../controllers/todo":9,"chemical/component":1}]},{},[10]);
+},{}]},{},[8]);

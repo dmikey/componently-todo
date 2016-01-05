@@ -1,34 +1,37 @@
 // import helpers
-var router = require('chemical/router');
+var PathParser = require('pathparser');
+var router = new PathParser;
+
+// load the stored todos
+
+var store = require('./stores/todo');
+store.load();
 
 // render view
 var MainView = require('./views/main');
 var target = document.querySelector('#todoapp');
-
 MainView.renderInto(target);
 
-// application routes for todo
-router.intitialize(function (route) {
-    // 404
+router.add('/', function () {
+    // set the filter which will also call the 
+    // store dispatch
+    MainView.$.footer.setActiveFilter('all');
 });
 
-router.bind('/', function () {
-    MainView.components.footer.setActiveFilter('all');
+router.add('/active', function () {
+    MainView.$.footer.setActiveFilter('active');
 });
 
-router.bind('/active', function () {
-    MainView.components.footer.setActiveFilter('active');
+router.add('/completed', function () {
+    MainView.$.footer.setActiveFilter('completed');
 });
 
-router.bind('/completed', function () {
-    MainView.components.footer.setActiveFilter('completed');
-});
-
-
-// controls first view
-if (router.routes[location.pathname]) {
-    router.routes[location.pathname]();
-} else {
+function hashChange(){
     var hash = location.hash.replace('#', '');
-    router.change(hash);
+    if (hash.length === 0) hash = '/';
+    router.run(hash); 
 }
+
+window.onhashchange = hashChange;
+
+hashChange();

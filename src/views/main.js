@@ -1,5 +1,5 @@
 //import components
-var Component = require('chemical/component');
+var Component = require('componently');
 
 var Header = require('../components/header'),
     Main = require('../components/main'),
@@ -12,14 +12,14 @@ var Controller = require('../controllers/todo');
 // chemical does NOT do this by default, YOU decide
 // when you need this
 var components = {
-        header:  new Header({}),
-        main: new Main({
-            content: []
-        }),
-        footer: new Footer({
-            itemsleft: 0
-        })
-    };
+    header: new Header({}),
+    main: new Main({
+        content: []
+    }),
+    footer: new Footer({
+        itemsleft: 0
+    })
+};
 
 // compose view
 var container = new Component({
@@ -30,15 +30,28 @@ var container = new Component({
     ]
 });
 
-document.addEventListener('todo-store-updated', function(event){
+document.addEventListener('todo-store-updated', function (event) {
+    // listen for the store to be updated
     var store = event.store;
     var viewstate = store.viewstate;
 
-    // find all todos where status is empty
-    components.footer.itemsleft = store.find({status:''}).length;
-    components.main.toggleall = viewstate.toggleall ? 'checked' : '';
-    components.main.data({content: store.get()});
+    // update the view components
+    components.footer.itemsleft = store.find({
+        status: ''
+    }).length;
+
+    components.main.update({
+        components: Controller.translateTodos(store.get()),
+        toggleall: viewstate.toggleall ? 'checked' : ''
+    });
+
+    // ask the container to update it's DOM reference
+    container.update();
+
 }, false);
 
-//we want to export our components
+// export reference to the components we need
+container.$ = components;
+
+// we want to export our components
 module.exports = container;

@@ -1,7 +1,5 @@
-<li class="<%= data.status %>" data-index="<%= data.index %>">
-    <div class="view">
-        <input type="checkbox" class="toggle" <%= data.status === 'completed' ? 'checked' : '' %>>
-        <label><%= data.content %></label>
-        <button class="destroy"></button>
-    </div>
-</li>
+<div class="view">
+    <input type="checkbox" class="toggle" <%= data.status === 'completed' ? 'checked' : '' %>>
+    <label><%= data.content %></label>
+    <button class="destroy"></button>
+</div>

@@ -1,16 +1,12 @@
 'use strict';
 
 var
-    component = require('chemical/component');
+    component = require('componently');
 
 var
     templates = require('../templates');
 
-var
-    todo = require('./todo');
-
-module.exports = function(data) {
-    this.todo = todo;
-    data.template = templates['templates/main.html'];
+module.exports = function (data) {
+    this.template = templates['templates/main.html'];
     component.call(this, data);
 };
