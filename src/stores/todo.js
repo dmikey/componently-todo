@@ -55,7 +55,7 @@ module.exports = {
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
-    }, 60),
+    }, 80),
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {

@@ -31,6 +31,8 @@ var container = new Component({
 });
 
 document.addEventListener('todo-store-updated', function (event) {
+    
+    console.log('update')
     // listen for the store to be updated
     var store = event.store;
     var viewstate = store.viewstate;

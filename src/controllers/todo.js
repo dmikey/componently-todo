@@ -2,6 +2,9 @@ var noop = function () {};
 var constants = require('../constants');
 var store = require('../stores/todo');
 
+console.log('events');
+
+
 // double click to edit a todo
 document.addEventListener('dblclick', function (event) {
     var target = event.target;
@@ -148,7 +151,7 @@ module.exports = {
         var components = [];
         for (var i = 0; i < todos.length; i++) {
             // create a todo item
-            components.push(new ToDo({
+            components[i] = new ToDo({
                 tag: 'li',
                 attributes: {
                     'class': todos[i].status,
@@ -156,7 +159,7 @@ module.exports = {
                 },
                 status: todos[i].status,
                 content: todos[i].label
-            }));
+            });
         }
         return components;
     }

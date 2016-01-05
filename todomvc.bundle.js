@@ -96,6 +96,9 @@ var noop = function () {};
 var constants = require('../constants');
 var store = require('../stores/todo');
 
+console.log('events');
+
+
 // double click to edit a todo
 document.addEventListener('dblclick', function (event) {
     var target = event.target;
@@ -363,7 +366,7 @@ module.exports = {
         e.nodraw = nodraw;
         e.store = this;
         document.dispatchEvent(e);
-    }, 50),
+    }, 80),
     delete: function (idx) {
         if (idx instanceof Array) {
             for (var i = idx.length - 1; i >= 0; i--) {
@@ -496,6 +499,8 @@ var container = new Component({
 });
 
 document.addEventListener('todo-store-updated', function (event) {
+    
+    console.log('update')
     // listen for the store to be updated
     var store = event.store;
     var viewstate = store.viewstate;
