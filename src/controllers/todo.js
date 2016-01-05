@@ -1,7 +1,36 @@
-var noop = function(){};
+var noop = function () {};
 var constants = require('../constants');
 var store = require('../stores/todo');
 
+// double click to edit a todo
+document.addEventListener('dblclick', function (event) {
+    var target = event.target;
+
+    if (target.className.indexOf('todolabel') > -1) {
+        // show the edit field
+        var li = target.parentNode.parentNode;
+        li.className += ' editing';
+
+        // set focus to the input field
+        var edit = li.querySelector('.edit');
+        edit.focus();
+
+        // remove the edit field when focus lost
+        edit.addEventListener('focusout', function () {
+
+            // remove this listener
+            edit.removeEventListener('focusout');
+            li.className = '';
+
+            target.innerHTML = edit.value;
+            store.update(li.getAttribute('data-index'), {
+                label: edit.value
+            }, false)
+        });
+    }
+});
+
+// click targets
 document.addEventListener('click', function (event) {
     var target = event.target;
 
@@ -11,6 +40,7 @@ document.addEventListener('click', function (event) {
         store.delete(store.find({
             status: 'completed'
         }));
+        
         return;
     }
 
@@ -29,6 +59,8 @@ document.addEventListener('click', function (event) {
                 status: status
             }, false)
         }
+
+        store.dispatch();
 
         return;
     }
@@ -49,13 +81,29 @@ document.addEventListener('click', function (event) {
 
         // set the class on the DOM for animated strike through
         li.className = status;
-        
+
         store.update(li.getAttribute('data-index'), {
             status: status
         }, false);
+
+        store.viewstate.toggleall = false;
+        if (store.length() === store.find({
+                status: 'completed'
+            }).length && store.length() !== 0) {
+
+            store.viewstate.toggleall = true;
+        }
+        
+        var toggleall = document.getElementById('toggle-all');
+        if(store.viewstate.toggleall) {
+            toggleall.setAttribute('checked','checked');
+        } else if(toggleall.hasAttribute('checked')) {
+            toggleall.removeAttribute('checked');
+        }
     }
 }, false);
 
+// look for enter key
 window.addEventListener('keypress', function (event) {
     if (event.keyCode === constants.ENTER_KEY) {
         if ('new-todo' === event.target.id) {
@@ -67,14 +115,16 @@ window.addEventListener('keypress', function (event) {
 
             event.target.value = '';
         }
+        
+        if (event.target.className.indexOf('edit') > -1) {
+            event.target.blur();    
+        }
+        
         return;
     }
-
-    // focus on the new-todo input box if someone is 
-    // typing a todo
-    document.getElementById('new-todo').focus();
 }, false);
 
+// check for escape key
 window.addEventListener('keyup', function (event) {
     if (event.keyCode === constants.ESCAPE_KEY) {
 

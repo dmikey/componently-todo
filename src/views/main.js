@@ -35,6 +35,16 @@ document.addEventListener('todo-store-updated', function (event) {
     var store = event.store;
     var viewstate = store.viewstate;
 
+    // toggle all view state
+    viewstate.toggleall = false;
+    if (store.length() === store.find({
+            status: 'completed'
+        }).length && store.length() !== 0) {
+        // all items are checked or unchecked?
+
+        viewstate.toggleall = true;
+    }
+
     // update the view components
     components.footer.itemsleft = store.find({
         status: ''
@@ -48,6 +58,7 @@ document.addEventListener('todo-store-updated', function (event) {
     // ask the container to update it's DOM reference
     container.update();
 
+    document.getElementById('new-todo').focus();
 }, false);
 
 // export reference to the components we need
